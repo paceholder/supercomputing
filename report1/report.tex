@@ -1,0 +1,115 @@
+\documentclass[utf8,12pt]{report}
+\usepackage{pscyr}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{amssymb,amsfonts,amsmath,mathtext}
+\usepackage{cite,enumerate,float,indentfirst}
+\usepackage[utf8]{inputenc}
+\usepackage{ragged2e}
+\justifying
+\usepackage{epstopdf}
+\usepackage{listings}
+\usepackage[pdftex]{graphicx}
+\usepackage{color}
+\usepackage{lmodern}
+\input{rgb}
+
+
+\lstset{% general command to set parameter(s)
+    basicstyle=\ttfamily\small, % \small, % print whole listing small
+    commentstyle=\color{white}, % white comments
+    stringstyle=\ttfamily, % typewriter type for strings
+    showstringspaces=false} % no special
+
+\renewcommand{\raggedright}{\leftskip=0pt \rightskip=0pt plus 0cm}
+
+\setcounter{tocdepth}{2}
+
+\graphicspath{{images/}}
+
+\title{lalalal}
+
+\begin{document}
+
+\title{Programming of supercomputers. Assignmeng sheet 1}
+\author{Dmitry Pinaev}
+\date{\today}
+\maketitle
+
+
+
+\section{System configuration}
+
+We have a system of 16 identical processors with following charachteristics obtained with the command less /proc/cpuinfo
+
+\begin{table}
+	\begin{tabular}{|l|l|}
+	\hline
+		vendor\_id & AuthenticAMD \\ 
+		cpu family & 16 \\
+		model      & 9 \\
+		model name & AMD Opteron(tm) Processor 6128 HE \\
+		stepping   & 1 \\
+		cpu MHz    & 2000.000 \\
+		cache size & 512 KB \\
+		physical id& 0 \\
+		siblings   & 8 \\
+		core id    & 0 \\
+		cpu cores  & 8 \\
+		apicid     & 16 \\
+		initial apicid  & 0 \\
+		fpu             & yes \\
+		fpu\_exception  & yes \\
+		cpuid level     & 5 \\
+		wp              & yes \\
+		flags           & fpu vme de pse tsc msr pae mce cx8 apic \\
+		                & sep mtrr pge mca cmov pat pse36 clflush mmx \\
+		                & fxsr sse sse2 ht syscall nx mmxext fxsr\_opt \\
+		                & pdpe1gb rdtscp lm 3dnowext 3dnow constant\_tsc \\
+		                & rep\_good nonstop\_tsc extd\_apicid amd\_dcm pni monitor \\
+		                & cx16 popcnt lahf\_lm cmp\_legacy svm extapic cr8\_legacy \\
+		                & abm sse4a misalignsse 3dnowprefetch \\
+		                & osvw ibs skinit wdt nodeid\_msr \\
+		bogomips        & 3999.71 \\
+		TLB size        & 1024 4K pages \\
+		clflush size    & 64 \\
+		cache\_alignment & 64 \\
+		address sizes    & 48 bits physical, 48 bits virtual \\
+		power management & ts ttp tm stc 100mhzsteps hwpstate \\
+		\hline
+	\end{tabular}
+\end{table}
+
+
+The system is equipped with 32 GB RAM.
+
+The cache on this type of processors:
+
+\begin{table}
+	\begin{tabular}{|l|l|}
+	\hline
+		LEVEL1\_ICACHE\_SIZE                 & 65536 \\
+		LEVEL1\_ICACHE\_ASSOC                & 2 \\
+		LEVEL1\_ICACHE\_LINESIZE             & 64 \\
+		LEVEL1\_DCACHE\_SIZE                 & 65536 \\
+		LEVEL1\_DCACHE\_ASSOC                & 2 \\
+		LEVEL1\_DCACHE\_LINESIZE             & 64 \\
+		LEVEL2\_CACHE\_SIZE                  & 524288 \\
+		LEVEL2\_CACHE\_ASSOC                 & 16 \\
+		LEVEL2\_CACHE\_LINESIZE              & 64 \\
+		LEVEL3\_CACHE\_SIZE                  & 10485760 \\
+		LEVEL3\_CACHE\_ASSOC                 & 96 \\
+		LEVEL3\_CACHE\_LINESIZE              & 64 \\
+		LEVEL4\_CACHE\_SIZE                  & 0 \\
+		LEVEL4\_CACHE\_ASSOC                 & 0 \\
+		LEVEL4\_CACHE\_LINESIZE              & 0 \\
+	\hline
+	\end{tabular}
+\end{table}
+
+\end{document}
+
+
+
+
+
