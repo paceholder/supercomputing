@@ -1,7 +1,5 @@
-
-CC = icc
-CFLAGS = -g -O0 -c99
-#-g -c99
+CC = gcc
+CFLAGS = -g -O0
 LIBS = -lm
 
 # Make sure you have loaded the papi module before uncommenting 
@@ -12,7 +10,10 @@ LIBS += $(PAPI_LIB)
 SRCS = xread.c xwrite.c gccg.c vol2mesh.c
 OBJS =  $(addsuffix .o, $(basename $(SRCS)))
 
-all: gccg 
+SRCS2 = binconv.c
+OBJS2 =  $(addsuffix .o, $(basename $(SRCS2)))
+
+all: gccg binconv
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
@@ -20,5 +21,8 @@ all: gccg
 gccg: $(OBJS) 
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
+binconv: $(OBJS2)
+	$(CC) -o $@ $^ $(CFLAGS)
+
 clean:
-	rm -rf *.o gccg 
+	rm -rf *.o gccg binconv
