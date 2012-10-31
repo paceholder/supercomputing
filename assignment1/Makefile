@@ -1,5 +1,5 @@
 CC = icc
-CFLAGS = -g -O0 -c99
+CFLAGS = -g -O3 -c99 -opt-prefetch=4
 LIBS = -lm
 
 # Make sure you have loaded the papi module before uncommenting 
@@ -7,7 +7,7 @@ LIBS = -lm
 CFLAGS += $(PAPI_INC)
 LIBS += $(PAPI_LIB)
 
-SRCS = xread.c xwrite.c gccg.c vol2mesh.c
+SRCS = xread.c xwrite.c gccg.c vol2mesh.c test.c
 OBJS =  $(addsuffix .o, $(basename $(SRCS)))
 
 SRCS2 = binconv.c

@@ -8,6 +8,8 @@
 #include "xread.h"
 #include "xwrite.h"
 
+#include "test.h"
+
 int main(int argc, char *argv[])
 {
     if (argc < 4) {
@@ -34,30 +36,22 @@ int main(int argc, char *argv[])
     /** boundary coefficients for each volume cell */
     double *bs, *be, *bn, *bw, *bl, *bh, *bp, *su;
 
-    #define NUM_EVENTS 2
-    /* 
-     * PAPI_L1_TCH  0x80000055  Level 1 total cache hits
-     * PAPI_L2_TCH  0x80000056  Level 2 total cache hits
-     * PAPI_L1_TCM  0x80000006  Level 1 cache misses
-     * PAPI_L2_TCM  0x80000007  Level 2 cache misses
-     */
-    int Events[NUM_EVENTS] = { PAPI_L1_TCM, PAPI_L1_TCA};
-
-    /* counters aray to store results */
-    long_long values[NUM_EVENTS];
-    /* variables for mearusements */
-    float rtime, ptime, mflops;
-    long_long flpops;
-
-    if ( PAPI_start_counters( Events, 2 ) != PAPI_OK ) exit(1);
+    if ( test_start() != 0 ) exit(1);
 
 
     /************************************************************/
     /* initialization  */
     // read-in the input file
-    int f_status = read_formatted(file_in, &nintci, &nintcf, &nextci, &nextcf, 
+    int f_status;
+
+    if (strcmp(format, "text") == 0) 
+        f_status = read_formatted(file_in, &nintci, &nintcf, &nextci, &nextcf, 
                                   &lcc, &bs, &be, &bn, &bw, &bl, &bh, &bp, &su, 
                                   &nboard);
+    else
+        f_status = read_formatted_bin(file_in, &nintci, &nintcf, &nextci, 
+                                      &nextcf, &lcc, &bs, &be, &bn, &bw, &bl, 
+                                      &bh, &bp, &su, &nboard);
 
     if (f_status != 0) {
         printf("failed to initialize data!\n");
@@ -133,12 +127,8 @@ int main(int argc, char *argv[])
     int nor1 = nor - 1;
     /* finished initalization */
 
-    if ( PAPI_read_counters( values, NUM_EVENTS ) != PAPI_OK ) exit( 1 );
 
-    float l1_miss_rate = (float)values[0] / (float)(values[1]);
-
-    printf("L1 %f\n", l1_miss_rate);
-
+    if ( test_measure() != 0 ) exit( 1 );
 
     /***************************************************/
 
@@ -245,11 +235,7 @@ int main(int argc, char *argv[])
 
     /* finished computation loop */
 
-    if ( PAPI_read_counters( values, NUM_EVENTS ) != PAPI_OK ) exit( 1 );
-
-    l1_miss_rate = (float)values[0] / (float)(values[1]);
-
-    printf("L1 %f\n", l1_miss_rate);
+    if ( test_measure() != 0 ) exit( 1 );
 
     /**************************************************************/
 
@@ -257,11 +243,7 @@ int main(int argc, char *argv[])
     if ( write_result(file_in, file_out, nintci, nintcf, var, iter, ratio) != 0 )
         printf("error when trying to write to file %s\n", file_out);
 
-    if ( PAPI_read_counters( values, NUM_EVENTS ) != PAPI_OK ) exit( 1 );
-
-    l1_miss_rate = (float)values[1] / (float)(values[0] + values[1]);
-
-    printf("L1 %f\n", l1_miss_rate);
+    if ( test_measure() != 0 ) exit( 1 );
 
 
     /* Free all the dynamically allocated memory */
@@ -285,12 +267,6 @@ int main(int argc, char *argv[])
     free(be);
     free(bs);
 
-
-    if ( PAPI_read_counters( values, NUM_EVENTS ) != PAPI_OK ) exit( 1 );
-
-    l1_miss_rate = (float)values[0] / (float)(values[1]);
-
-    printf("L1 %f\n", l1_miss_rate);
 
     printf("Simulation completed successfully!\n");
     return EXIT_SUCCESS;

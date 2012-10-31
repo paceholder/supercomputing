@@ -3,9 +3,9 @@ import subprocess
 test_files = ["./cojack.dat", "./drall.dat", "/pent.dat", "./tjunc.dat"]
 
 
-optimization_flags = ["-g -O0", "-O1", "-O2", "-O3"]
+optimization_flags = ["-g", "-O0", "-O1", "-O2", "-O3", "-O3 -opt-prefetch=4"]
 
-main_file_variants = ["./cache_l1_gccg.c", "./cache_l2_gccg.c", "./time_mflops_gccg.c"]
+test_variants = ["./test_l1.c", "./test_l2.c", "./test_mflops.c"]
 
 makefile_body1= \
 """
@@ -22,10 +22,13 @@ r"""
 CFLAGS += $(PAPI_INC)
 LIBS += $(PAPI_LIB)
 
-SRCS = xread.c xwrite.c gccg.c vol2mesh.c
+SRCS = xread.c xwrite.c gccg.c vol2mesh.c test.c
 OBJS =  $(addsuffix .o, $(basename $(SRCS)))
 
-all: gccg 
+SRCS2 = binconv.c
+OBJS2 =  $(addsuffix .o, $(basename $(SRCS2)))
+
+all: gccg binconv
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
@@ -33,16 +36,19 @@ all: gccg
 gccg: $(OBJS) 
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
+binconv: $(OBJS2)
+	$(CC) -o $@ $^ $(CFLAGS)
+
 clean:
-	rm -rf *.o gccg 
+	rm -rf *.o gccg binconv
 """
 
 print main_file_variants
-for mainfile in main_file_variants:
+for test in test_variants:
     print "\t\t MAINFILE", mainfile
 
-    subprocess.call(["rm", "./gccg.c"])
-    subprocess.call(["cp", mainfile, "./gccg.c"])
+    subprocess.call(["rm", "./test.c"])
+    subprocess.call(["cp", test, "./test.c"])
 
 
     for flags in optimization_flags:
