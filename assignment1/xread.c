@@ -24,32 +24,32 @@ int read_long_formatted(char *fileName, int *NINTCI, int *NINTCF, int *NEXTCI,
     }
 
     //26 variables in total!!!
-    fread( "%d", NINTCI);
-    fread( "%d", NINTCF);
-    fread( "%d", NEXTCI);
-    fread( "%d", NEXTCF);
-    fread( "%d", NBCESI);
-    fread( "%d", NBCESF);
-    fread( "%d", NBCEWI);
-    fread( "%d", NBCEWF);
-    fread( "%d", NBCELI);
-    fread( "%d", NBCELF);
-    fread( "%d", NSDIR);
-    fread( "%d", NEDIR);
-    fread( "%d", NI);
-    fread( "%d", NJ);
-    fread( "%d", NK);
-    fread( "%d", NDIR1);
-    fread( "%d", NDIR2);
-    fread( "%d", NDIR3);
-    fread( "%d", NBS);
-    fread( "%d", NBW);
-    fread( "%d", NBL);
-    fread( "%d", NBN);
-    fread( "%d", NBE);
-    fread( "%d", NBH);
-    fread( "%d", IDIM);
-    fread( "%d", INCR);
+    fscanf(fp, "%d", NINTCI);
+    fscanf(fp, "%d", NINTCF);
+    fscanf(fp, "%d", NEXTCI);
+    fscanf(fp, "%d", NEXTCF);
+    fscanf(fp, "%d", NBCESI);
+    fscanf(fp, "%d", NBCESF);
+    fscanf(fp, "%d", NBCEWI);
+    fscanf(fp, "%d", NBCEWF);
+    fscanf(fp, "%d", NBCELI);
+    fscanf(fp, "%d", NBCELF);
+    fscanf(fp, "%d", NSDIR);
+    fscanf(fp, "%d", NEDIR);
+    fscanf(fp, "%d", NI);
+    fscanf(fp, "%d", NJ);
+    fscanf(fp, "%d", NK);
+    fscanf(fp, "%d", NDIR1);
+    fscanf(fp, "%d", NDIR2);
+    fscanf(fp, "%d", NDIR3);
+    fscanf(fp, "%d", NBS);
+    fscanf(fp, "%d", NBW);
+    fscanf(fp, "%d", NBL);
+    fscanf(fp, "%d", NBN);
+    fscanf(fp, "%d", NBE);
+    fscanf(fp, "%d", NBH);
+    fscanf(fp, "%d", IDIM);
+    fscanf(fp, "%d", INCR);
 
     //allocating LCC
     if ((*LCC = (int**) malloc(6 * sizeof(int*))) == NULL) {
@@ -67,12 +67,12 @@ int read_long_formatted(char *fileName, int *NINTCI, int *NINTCF, int *NEXTCI,
     //start reading LCC
     //Note that C array index starts from 0 while Fortran starts from 1!
     for (i = (*NINTCI); i <= *NINTCF; i++) {
-        fread( "%d", &(*LCC)[0][i]);
-        fread( "%d", &(*LCC)[1][i]);
-        fread( "%d", &(*LCC)[2][i]);
-        fread( "%d", &(*LCC)[3][i]);
-        fread( "%d", &(*LCC)[4][i]);
-        fread( "%d", &(*LCC)[5][i]);
+        fscanf(fp, "%d", &(*LCC)[0][i]);
+        fscanf(fp, "%d", &(*LCC)[1][i]);
+        fscanf(fp, "%d", &(*LCC)[2][i]);
+        fscanf(fp, "%d", &(*LCC)[3][i]);
+        fscanf(fp, "%d", &(*LCC)[4][i]);
+        fscanf(fp, "%d", &(*LCC)[5][i]);
     }
 #ifdef DEBUG
 
@@ -109,12 +109,12 @@ int read_long_formatted(char *fileName, int *NINTCI, int *NINTCF, int *NEXTCI,
         return -1;
     }
 
-    for (i = 1; i <= *NBS; i++) fread( "%d", &((*LBS)[i]));
-    for (i = 1; i <= *NBN; i++) fread( "%d", &((*LBN)[i]));
-    for (i = 1; i <= *NBW; i++) fread( "%d", &((*LBW)[i]));
-    for (i = 1; i <= *NBE; i++) fread( "%d", &((*LBE)[i]));
-    for (i = 1; i <= *NBL; i++) fread( "%d", &((*LBL)[i]));
-    for (i = 1; i <= *NBH; i++) fread( "%d", &((*LBH)[i]));
+    for (i = 1; i <= *NBS; i++) fscanf(fp, "%d", &((*LBS)[i]));
+    for (i = 1; i <= *NBN; i++) fscanf(fp, "%d", &((*LBN)[i]));
+    for (i = 1; i <= *NBW; i++) fscanf(fp, "%d", &((*LBW)[i]));
+    for (i = 1; i <= *NBE; i++) fscanf(fp, "%d", &((*LBE)[i]));
+    for (i = 1; i <= *NBL; i++) fscanf(fp, "%d", &((*LBL)[i]));
+    for (i = 1; i <= *NBH; i++) fscanf(fp, "%d", &((*LBH)[i]));
 
 #ifdef DEBUG
     for(i = 1; i <= *NBS; i++) {
@@ -145,9 +145,9 @@ int read_long_formatted(char *fileName, int *NINTCI, int *NINTCF, int *NEXTCI,
         return -1;
     }
 
-    for (i = 1; i <= *NBW; i++) fread( "%d", &((*NTRAEW)[i]));
-    for (i = 1; i <= *NBS; i++) fread( "%d", &((*NTRANS)[i]));
-    for (i = 1; i <= *NBL; i++) fread( "%d", &((*NTRAHL)[i]));
+    for (i = 1; i <= *NBW; i++) fscanf(fp, "%d", &((*NTRAEW)[i]));
+    for (i = 1; i <= *NBS; i++) fscanf(fp, "%d", &((*NTRANS)[i]));
+    for (i = 1; i <= *NBL; i++) fscanf(fp, "%d", &((*NTRAHL)[i]));
 
 #ifdef DEBUG
     for(i = 1; i <= *NBW; i++) {
@@ -214,14 +214,14 @@ int read_long_formatted(char *fileName, int *NINTCI, int *NINTCF, int *NEXTCI,
     }
 
     for (i = (*NINTCI); i <= *NINTCF; i++) {
-        fread( "%lf", &((*BS)[i]));
-        fread( "%lf", &((*BE)[i]));
-        fread( "%lf", &((*BN)[i]));
-        fread( "%lf", &((*BW)[i]));
-        fread( "%lf", &((*BL)[i]));
-        fread( "%lf", &((*BH)[i]));
-        fread( "%lf", &((*BP)[i]));
-        fread( "%lf", &((*SU)[i]));
+        fscanf(fp, "%lf", &((*BS)[i]));
+        fscanf(fp, "%lf", &((*BE)[i]));
+        fscanf(fp, "%lf", &((*BN)[i]));
+        fscanf(fp, "%lf", &((*BW)[i]));
+        fscanf(fp, "%lf", &((*BL)[i]));
+        fscanf(fp, "%lf", &((*BH)[i]));
+        fscanf(fp, "%lf", &((*BP)[i]));
+        fscanf(fp, "%lf", &((*SU)[i]));
     }
 
 #ifdef DEBUG
@@ -235,7 +235,7 @@ int read_long_formatted(char *fileName, int *NINTCI, int *NINTCF, int *NEXTCI,
     }
 
     for (i = (*NINTCI); i <= *NINTCF; i++)
-        fread( "%d", &((*NBOARD)[i]));
+        fscanf(fp, "%d", &((*NBOARD)[i]));
 
     fclose(fp);
 #ifdef DEBUG
@@ -247,6 +247,7 @@ int read_long_formatted(char *fileName, int *NINTCI, int *NINTCF, int *NEXTCI,
 #endif
     return 0;
 }
+
 
 int read_formatted(char *fileName, int *NINTCI, int *NINTCF, int *NEXTCI,
                    int *NEXTCF, int ***LCC, double **BS, double **BE, double **BN,
@@ -260,10 +261,10 @@ int read_formatted(char *fileName, int *NINTCI, int *NINTCF, int *NEXTCI,
         return -1;
     }
     //4 variables in total!!!
-    fread( "%d", NINTCI);
-    fread( "%d", NINTCF);
-    fread( "%d", NEXTCI);
-    fread( "%d", NEXTCF);
+    fscanf(fp, "%d", NINTCI);
+    fscanf(fp, "%d", NINTCF);
+    fscanf(fp, "%d", NEXTCI);
+    fscanf(fp, "%d", NEXTCF);
 
     //allocating LCC
     if ((*LCC = (int**) malloc(6 * sizeof(int*))) == NULL) {
@@ -279,12 +280,12 @@ int read_formatted(char *fileName, int *NINTCI, int *NINTCF, int *NEXTCI,
     //start reading LCC
     //Note that C array index starts from 0 while Fortran starts from 1!
     for (i = (*NINTCI); i <= *NINTCF; i++) {
-        fread( "%d", &(*LCC)[0][i]);
-        fread( "%d", &(*LCC)[1][i]);
-        fread( "%d", &(*LCC)[2][i]);
-        fread( "%d", &(*LCC)[3][i]);
-        fread( "%d", &(*LCC)[4][i]);
-        fread( "%d", &(*LCC)[5][i]);
+        fscanf(fp, "%d", &(*LCC)[0][i]);
+        fscanf(fp, "%d", &(*LCC)[1][i]);
+        fscanf(fp, "%d", &(*LCC)[2][i]);
+        fscanf(fp, "%d", &(*LCC)[3][i]);
+        fscanf(fp, "%d", &(*LCC)[4][i]);
+        fscanf(fp, "%d", &(*LCC)[5][i]);
     }
 
     // allocate other arrays
@@ -323,14 +324,14 @@ int read_formatted(char *fileName, int *NINTCI, int *NINTCF, int *NEXTCI,
 
     // read the other arrays
     for (i = (*NINTCI); i <= *NINTCF; i++) {
-        fread( "%lf", &((*BS)[i]));
-        fread( "%lf", &((*BE)[i]));
-        fread( "%lf", &((*BN)[i]));
-        fread( "%lf", &((*BW)[i]));
-        fread( "%lf", &((*BL)[i]));
-        fread( "%lf", &((*BH)[i]));
-        fread( "%lf", &((*BP)[i]));
-        fread( "%lf", &((*SU)[i]));
+        fscanf(fp, "%lf", &((*BS)[i]));
+        fscanf(fp, "%lf", &((*BE)[i]));
+        fscanf(fp, "%lf", &((*BN)[i]));
+        fscanf(fp, "%lf", &((*BW)[i]));
+        fscanf(fp, "%lf", &((*BL)[i]));
+        fscanf(fp, "%lf", &((*BH)[i]));
+        fscanf(fp, "%lf", &((*BP)[i]));
+        fscanf(fp, "%lf", &((*SU)[i]));
     }
 
     // read board
@@ -340,7 +341,7 @@ int read_formatted(char *fileName, int *NINTCI, int *NINTCF, int *NEXTCI,
     }
 
     for (i = (*NINTCI); i <= *NINTCF; i++)
-        fread( "%d", &((*NBOARD)[i]));
+        fscanf(fp, "%d", &((*NBOARD)[i]));
 
     fclose(fp);
     return 0;
