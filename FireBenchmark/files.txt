@@ -1,0 +1,4 @@
+cojack.dat
+drall.dat
+pent.dat
+tjunc.dat
