@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
 
 
     // read the other arrays
-    for (i = (*NINTCI); i <= *NINTCF; i++) {
+    for (i = NINTCI; i <= NINTCF; i++) {
         for(j = 0; j < 8; ++j) 
             fscanf(fin, "%lf", &(buffer2[j]));
 
@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
     }
 
 
-    for (i = NINTCI); i <= NINTCF; i++) {
+    for (i = NINTCI; i <= NINTCF; i++) {
         fscanf(fin, "%d", &(buffer[0]));
         fwrite(&(buffer[0]), sizeof(int), 1, fout);
     }

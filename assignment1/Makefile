@@ -1,5 +1,5 @@
-CC = gcc
-CFLAGS = -g -O0
+CC = icc
+CFLAGS = -g -O0 -c99
 LIBS = -lm
 
 # Make sure you have loaded the papi module before uncommenting 
