@@ -1,7 +1,6 @@
 int test_start();
 
-int test_measure();
+int test_measure(char* phase);
 
 void test_stop();
 
-void test_write_to_file(const char* file_name);

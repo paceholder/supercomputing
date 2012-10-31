@@ -36,6 +36,7 @@ int main(int argc, char *argv[])
     /** boundary coefficients for each volume cell */
     double *bs, *be, *bn, *bw, *bl, *bh, *bp, *su;
 
+
     if ( test_start() != 0 ) exit(1);
 
 
@@ -128,7 +129,7 @@ int main(int argc, char *argv[])
     /* finished initalization */
 
 
-    if ( test_measure() != 0 ) exit( 1 );
+    if ( test_measure("INPUT") != 0 ) exit( 1 );
 
     /***************************************************/
 
@@ -235,7 +236,7 @@ int main(int argc, char *argv[])
 
     /* finished computation loop */
 
-    if ( test_measure() != 0 ) exit( 1 );
+    if ( test_measure("CALC") != 0 ) exit( 1 );
 
     /**************************************************************/
 
@@ -243,7 +244,7 @@ int main(int argc, char *argv[])
     if ( write_result(file_in, file_out, nintci, nintcf, var, iter, ratio) != 0 )
         printf("error when trying to write to file %s\n", file_out);
 
-    if ( test_measure() != 0 ) exit( 1 );
+    if ( test_measure("OUTPUT") != 0 ) exit( 1 );
 
 
     /* Free all the dynamically allocated memory */

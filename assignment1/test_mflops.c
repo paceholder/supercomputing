@@ -14,25 +14,32 @@
 static float rtime, ptime, mflops;
 static long_long flpops;
 
+/* output file */
+static char* res_file_name = "pstats.dat";
+static FILE* res_file;
+
 int test_start()
 {
+    res_file = fopen(res_file_name, "w");
+    if (res_file == NULL) {
+        printf("Error opening file %s\n", res_file_name);
+        return -1;
+    }
+
     PAPI_flops (&rtime, &ptime, &flpops, &mflops);
     return 0;
 }
 
-int test_measure()
+int test_measure(char* phase)
 {
     PAPI_flops (&rtime, &ptime, &flpops, &mflops);
-    printf("realtime %f mflops %f\n", rtime, mflops);
+    fprintf(res_file, "Realtime=%f\n", rtime);
+    fprintf(res_file, "Mflops=%f\n", mflops);
     return 0;
 }
 
 void test_stop()
 {
-
+    fclose(res_file);
 }
 
-void test_write_to_file(const char* file_name)
-{
-
-}

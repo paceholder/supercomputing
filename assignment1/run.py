@@ -43,15 +43,17 @@ clean:
 	rm -rf *.o gccg binconv
 """
 
-print main_file_variants
+iterations=5
+
 for test in test_variants:
-    print "\t\t MAINFILE", mainfile
+    print "\t\t TEST", test
 
     subprocess.call(["rm", "./test.c"])
     subprocess.call(["cp", test, "./test.c"])
 
 
-    for flags in optimization_flags:
+    for j in range(len(optimization_flags)):
+        flags = optimization_flags[j]
         # compile the program  - 3 vesions
 
         print "\t\t FLAG", flags
@@ -64,11 +66,11 @@ for test in test_variants:
         subprocess.call(["make", "clean"])
         subprocess.call(["make"])
 
-        for test in test_files:
-            print "\t\t SCENARIO:", test
-            for i in range(3):
+        for test_file in test_files:
+            print "\t\t SCENARIO:", test_file
+            for i in range(iterations):
                 print "\t\tRUN: ", i
-                subprocess.call(["./gccg", test, "out.txt"])
+                subprocess.call(["./gccg", "text", test_file, "out.txt"])
 
-
+                subprocess.call(["cp", "pstats.dat", "%s_%s_%d_%d" % (test, test_file[2:],j,i)])
 

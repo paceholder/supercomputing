@@ -1,5 +1,7 @@
+
 CC = icc
-CFLAGS = -g -O3 -c99 -opt-prefetch=4
+CFLAGS = -g -c99
+#-g -c99
 LIBS = -lm
 
 # Make sure you have loaded the papi module before uncommenting 
