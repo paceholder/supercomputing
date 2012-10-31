@@ -10,13 +10,14 @@
 
 int main(int argc, char *argv[])
 {
-    if (argc < 3) {
-        printf("Usage: %s input_file output_file\n", argv[0]);
+    if (argc < 4) {
+        printf("Usage: %s <format> <input_file> <output_file_prefix>\n", argv[0]);
         return EXIT_FAILURE;
     }
 
-    char *file_in = argv[1];
-    char *file_out = argv[2];
+    char *format = argv[1];
+    char *file_in = argv[2];
+    char *file_out = argv[3];
 
     int status = 0;
 
