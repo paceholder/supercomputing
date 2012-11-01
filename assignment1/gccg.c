@@ -5,6 +5,8 @@
 #include <papi.h>
 #include <stdio.h>
 
+
+#include "vol2mesh.h"
 #include "xread.h"
 #include "xwrite.h"
 
@@ -245,6 +247,18 @@ int main(int argc, char *argv[])
         printf("error when trying to write to file %s\n", file_out);
 
     if ( test_measure("OUTPUT") != 0 ) exit( 1 );
+
+
+    int nodeCnt;
+    int** points;
+    int** elems;
+
+    vol2mesh(nintci, nintcf, lcc, &nodeCnt, &points, &elems);
+
+    write_result_vtk("SU.vtk", nintci, nintcf, nodeCnt, points, elems, su);
+    write_result_vtk("VAR.vtk", nintci, nintcf, nodeCnt, points, elems, var);
+    write_result_vtk("CGUP.vtk", nintci, nintcf, nodeCnt, points, elems, cgup);
+
 
 
     /* Free all the dynamically allocated memory */

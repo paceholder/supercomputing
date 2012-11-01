@@ -33,8 +33,8 @@ int test_start()
 int test_measure(char* phase)
 {
     PAPI_flops (&rtime, &ptime, &flpops, &mflops);
-    fprintf(res_file, "Realtime=%f\n", rtime);
-    fprintf(res_file, "Mflops=%f\n", mflops);
+    fprintf(res_file, "%s_Realtime=%f\n", phase, ptime);
+    fprintf(res_file, "%s_Mflops=%f\n", phase, mflops);
     return 0;
 }
 

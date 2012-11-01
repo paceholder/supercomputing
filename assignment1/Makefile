@@ -1,6 +1,5 @@
-
 CC = icc
-CFLAGS = -g -c99
+CFLAGS = -O3 -opt-prefetch=4 -c99
 #-g -c99
 LIBS = -lm
 
