@@ -34,7 +34,7 @@ int test_start()
         return 0;
 }
 
-int test_measure()
+int test_measure(char* phase)
 {
     if ( PAPI_read_counters( values, NUM_EVENTS ) != PAPI_OK )
         return -1;
