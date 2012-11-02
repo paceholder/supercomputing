@@ -107,6 +107,18 @@ The cache on this type of processors:
 	\end{tabular}
 \end{table}
 
+
+The assignment was aimed at measuring various performance parameters, namely L1 cache miss rate, L2 cache miss rate, Mflops/sec, runtime.
+
+To reach our goals we have used special functions and counters from PAPI library.
+Unfortunately, given system did not allow to measure more than 4 parameters at the same time, therefore, the source code was changed in a way to compile different versions of the grogram with special counters inside.
+
+It was discovered that for some reason even 3 parameters could not be measures at once (for example L1 miss number, L1 total accesses, L2 miss number).
+The functins PAPI\_start\_counters() returned an error code after trying of measure 3 parameters.
+
+The compilation process was automatised with simple Python script which compiled the code with different compiler options and used all geometry data files.
+
+For a computation of Mflops/sec and runtime the function PAPI\_flops() wase used.
 \end{document}
 
 
