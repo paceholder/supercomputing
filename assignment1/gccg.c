@@ -38,10 +38,7 @@ int main(int argc, char *argv[])
     /** boundary coefficients for each volume cell */
     double *bs, *be, *bn, *bw, *bl, *bh, *bp, *su;
 
-    PAPI_hw_info_t* hw_info;
-
-
-    hw_info = PAPI_get_hardware_info(void);
+    const PAPI_hw_info_t* hw_info = PAPI_get_hardware_info();
 
     if ( test_start() != 0 ) exit(1);
 

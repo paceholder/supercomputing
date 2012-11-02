@@ -30,9 +30,10 @@ int test_start()
 
 int test_measure(char* phase)
 {
-    if ( PAPI_read_counters( values, NUM_EVENTS ) != PAPI_OK )
+    if ( PAPI_read_counters( values, NUM_EVENTS ) != PAPI_OK ) {
+        printf("EEERRRRRRRRRRRRRRRROR\n");
         return -1;
-    else {
+    } else {
         float rate = (float)values[0] / (float)(values[1]);
         fprintf(res_file, "%s_PAPI_FP_INS=%lld\n", phase, values[0]);
         fprintf(res_file, "%s_PAPI_TOT_CYC=%lld\n", phase, values[1]);

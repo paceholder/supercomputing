@@ -1,7 +1,6 @@
 import subprocess
 
-#geometry_files = ["./cojack.dat", "./drall.dat", "/pent.dat", "./tjunc.dat"]
-geometry_files = ["./drall.dat"]
+geometry_files = ["./cojack.dat", "./drall.dat", "/pent.dat", "./tjunc.dat"]
 
 optimization_flags = [ "-O0", "-O1", "-O2", "-O3", "-O3 -opt-prefetch=2", "-O3 -opt-prefetch=4"]
 
@@ -43,7 +42,7 @@ clean:
 	rm -rf *.o gccg binconv
 """
 
-iterations=2
+iterations=1
 
 for test in test_variants:
     print "\t\t TEST", test
