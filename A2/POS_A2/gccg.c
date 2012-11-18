@@ -121,12 +121,13 @@ int main(int argc, char *argv[]) {
     free(bs);
     free(elems);
 
-    for(int i = 0; i < nintcf + 1; i++) {
+    int i;
+    for(i = 0; i < nintcf + 1; i++) {
         free(lcc[i]);
     }
     free(lcc);
 
-    for(int i = 0; i < points_count; i++) {
+    for(i = 0; i < points_count; i++) {
         free(points[i]);
     }
     free(points);

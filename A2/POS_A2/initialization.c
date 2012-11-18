@@ -16,7 +16,7 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
                    int*** points, int** elems, double** var, double** cgup, double** oc,
                    double** cnorm, int** local_global_index, int** global_local_index,
                    int* neighbors_count, int** send_count, int*** send_list, int** recv_count,
-                   int*** recv_list, int** epart, int** npart, int* objval) {
+                   int*** recv_list, int** epart, int** npart, int** objval) {
     /********** START INITIALIZATION **********/
     int i = 0;
     // read-in the input file
