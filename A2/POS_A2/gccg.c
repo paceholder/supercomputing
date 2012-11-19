@@ -55,9 +55,9 @@ int main(int argc, char *argv[]) {
     int** recv_list;    /// send lists for the other neighbor (see send_list)
 
     /** Metis Results */
-    int* epart;     /// partition vector for the elements of the mesh
-    int* npart;     /// partition vector for the points (nodes) of the mesh
-    int* objval;    /// resulting edgecut of total communication volume (classical distrib->zeros)
+    long* epart;     /// partition vector for the elements of the mesh
+    long* npart;     /// partition vector for the points (nodes) of the mesh
+    long* objval;    /// resulting edgecut of total communication volume (classical distrib->zeros)
 
     MPI_Init(&argc, &argv);    /// Start MPI
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
@@ -73,21 +73,19 @@ int main(int argc, char *argv[]) {
     char *part_type = (argc == 3 ? "classical" : argv[3]);
 
     /********** START INITIALIZATION **********/
-    // read-in the input file
+
     int init_status = initialization(file_in, part_type, &nintci, &nintcf, &nextci, &nextcf, &lcc,
                                      &bs, &be, &bn, &bw, &bl, &bh, &bp, &su, &points_count, &points,
                                      &elems, &var, &cgup, &oc, &cnorm, &local_global_index,
                                      &global_local_index, &neighbors_count, &send_count, &send_list,
                                      &recv_count, &recv_list, &epart, &npart, &objval);
-
     if ( init_status != 0 ) {
         fprintf(stderr, "Failed to initialize data!\n");
         MPI_Abort(MPI_COMM_WORLD, my_rank);
     }
 
     // Implement this function in test_functions.c and call it here
-    /* test_distribution(file_in, file_vtk_out, local_global_index, 
-     num_elems, cgup_local); */
+//    test_distribution(file_in, file_vtk_out, local_global_index, num_elems, cgup_local); 
 
     // Implement this function in test_functions.c and call it here
     /*test_communication(file_in, file_vtk_out, local_global_index, num_elems,

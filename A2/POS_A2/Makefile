@@ -18,10 +18,10 @@ OBJS =  $(addsuffix .o, $(basename $(SRCS)))
 all: gccg 
 
 %.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) -c -o $(METIS_INC)  $@ $< $(CFLAGS)
 
 gccg: gccg.c $(LIBPOS) test_functions.o
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+	$(CC) -o $@ $^ $(CFLAGS) $(LIBS) $(METIS_LIB)
 
 $(LIBPOS) : $(OBJS)
 	$(AR) $(ARFLAGS) $@ $+
