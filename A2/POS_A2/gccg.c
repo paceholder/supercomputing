@@ -55,9 +55,9 @@ int main(int argc, char *argv[]) {
     int** recv_list;    /// send lists for the other neighbor (see send_list)
 
     /** Metis Results */
-    long* epart;     /// partition vector for the elements of the mesh
-    long* npart;     /// partition vector for the points (nodes) of the mesh
-    long* objval;    /// resulting edgecut of total communication volume (classical distrib->zeros)
+    int* epart;     /// partition vector for the elements of the mesh
+    int* npart;     /// partition vector for the points (nodes) of the mesh
+    int objval;    /// resulting edgecut of total communication volume (classical distrib->zeros)
 
     MPI_Init(&argc, &argv);    /// Start MPI
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
@@ -94,16 +94,19 @@ int main(int argc, char *argv[]) {
     /********** END INITIALIZATION **********/
 
     /********** START COMPUTATIONAL LOOP **********/
-    int total_iters = compute_solution(max_iters, nintci, nintcf, nextcf, lcc, bp, bs, bw, bl, bn,
-                                       be, bh, cnorm, var, su, cgup, &residual_ratio,
-                                       local_global_index, global_local_index, neighbors_count,
-                                       send_count, send_list, recv_count, recv_list);
+    //int total_iters = compute_solution(max_iters, nintci, nintcf, nextcf, lcc, bp, bs, bw, bl, bn,
+      //                                 be, bh, cnorm, var, su, cgup, &residual_ratio,
+        //                               local_global_index, global_local_index, neighbors_count,
+          //                             send_count, send_list, recv_count, recv_list);
     /********** END COMPUTATIONAL LOOP **********/
 
     /********** START FINALIZATION **********/
-    finalization(file_in, out_prefix, total_iters, residual_ratio, nintci, nintcf, points_count,
-                 points, elems, var, cgup, su);
+    // finalization(file_in, out_prefix, total_iters, residual_ratio, nintci, nintcf, points_count,
+            //     points, elems, var, cgup, su);
     /********** END FINALIZATION **********/
+
+    /*
+    printf("memory freeing %d\n", my_rank);
 
     free(cnorm);
     free(oc);
@@ -129,6 +132,8 @@ int main(int argc, char *argv[]) {
         free(points[i]);
     }
     free(points);
+    */
+
 
     MPI_Finalize();    /// Cleanup MPI
 
