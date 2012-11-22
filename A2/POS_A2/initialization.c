@@ -24,10 +24,19 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
     int j;
     int my_rank;
     int num_procs;
+    idx_t ne;
+    idx_t nn;
+    idx_t *ept;
+    idx_t *npt;
+
+    double* glob_var; 
+    double* glob_cgup;
+    double* glob_oc; 
+    double* glob_cnorm; 
+
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
     
-    printf("hello from process %d\n", my_rank);
 
     if (my_rank == 0) {
 
@@ -39,17 +48,13 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
                                        &*points, elems);
 
         printf("Reading the files %d\n", my_rank);
-        printf("nintcf %d\n", *nintcf);
-        printf("nextcf %d\n", *nextcf);
-        printf("points count %d\n", *points_count);
-        
 
         if ( f_status != 0 ) return f_status;
 
-        *var = (double*) calloc(sizeof(double), (*nextcf + 1));
-        *cgup = (double*) calloc(sizeof(double), (*nextcf + 1));
-        *oc = (double*) calloc(sizeof(double), (*nintcf + 1));
-        *cnorm = (double*) calloc(sizeof(double), (*nintcf + 1));
+        glob_var = (double*) calloc(sizeof(double), (*nextcf + 1));
+        glob_cgup = (double*) calloc(sizeof(double), (*nextcf + 1));
+        glob_oc = (double*) calloc(sizeof(double), (*nintcf + 1));
+        glob_cnorm = (double*) calloc(sizeof(double), (*nintcf + 1));
 
         // initialize the arrays
         for ( i = 0; i <= 10; i++ ) {
@@ -76,63 +81,107 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
         for ( i = (*nintci); i <= (*nintcf); i++ )
             (*cgup)[i] = 1.0 / ((*bp)[i]);
 
-        
-        printf("Arrays intialized %d\n", my_rank);
-
 
         idx_t options[METIS_NOPTIONS];
 
-    idx_t ne = *nintcf+1;
-    idx_t nn = *points_count;
+        ne = *nintcf+1;
+        nn = *points_count;
 
-    idx_t* eptr = (idx_t*) malloc  ((ne + 1) * sizeof(idx_t));
-    for(i = 0; i < ne + 1; ++i)
-        eptr[i] = i * 8;
+        idx_t* eptr = (idx_t*) malloc  ((ne + 1) * sizeof(idx_t));
+        for(i = 0; i < ne + 1; ++i)
+            eptr[i] = i * 8;
 
+
+        idx_t* eind = (idx_t*) malloc (ne * sizeof(idx_t) * 8);
+
+        for(i = 0; i < ne * 8; ++i)
+            eind[i] = (*elems)[i];
+
+        ept = (idx_t*) malloc (ne * sizeof(idx_t));
+        npt = (idx_t*) malloc (nn * sizeof(idx_t));
+
+        idx_t obvl;
+        idx_t ncommon = 4;
+        idx_t procs = num_procs;
+
+        METIS_SetDefaultOptions(options);
+
+        if (strcmp(part_type, "dual") == 0) {
+            METIS_PartMeshDual(&ne, &nn, 
+                            eptr, eind, 
+                            NULL, NULL, &ncommon, 
+                            &procs, NULL, options, 
+                            &obvl, ept, npt);
+        } else if (strcmp(part_type, "nodal") == 0 ) {
+            METIS_PartMeshNodal(&ne, &nn, 
+                                eptr, eind, 
+                                NULL, NULL, 
+                                &procs,
+                                NULL, options, 
+                                &obvl, ept, npt);
+        } else if (strcmp(part_type, "classical") == 0) {
+
+
+        } else {
+            printf("unknown partition type\n");
+            MPI_Abort(MPI_COMM_WORLD, -1);
+        }
+
+
+        printf("Number of volumes %lu\n", obvl);
+        printf("----------------------------------------\n");
+    }
+
+
+    printf("hello from process %d\n", my_rank);
+//    #if IDXTYPEWIDTH=64
+//
+    // distribute lengths of METIS arrays
+    MPI_Bcast(&ne, 1, MPI_LONG, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&nn, 1, MPI_LONG, 0, MPI_COMM_WORLD);
 
     printf("FUCK YOU first time\n");
-    idx_t* eind = (idx_t*) malloc (ne * sizeof(idx_t) * 8);
+    printf("%d - ne: %lu\n;", my_rank, ne);
 
-    for(i = 0; i < ne * 8; ++i)
-        eind[i] = (*elems)[i];
+    if (my_rank != 0) {
+        ept = (idx_t*) malloc (ne * sizeof(idx_t));
+        npt = (idx_t*) malloc (nn * sizeof(idx_t));
+        printf("ALLOCATE %d\n", my_rank);
+    }
 
-    idx_t *ept = (idx_t*) malloc (ne * sizeof(idx_t));
-    idx_t *npt = (idx_t*) malloc (nn * sizeof(idx_t));  
+    printf("FUCK YOU second time\n");
+    printf("%d - nn: %lu\n;", my_rank, nn);
 
-    idx_t obvl;
-    idx_t ncommon = 4;
-    idx_t procs = num_procs;
+    // distribute METIS arrays
+    MPI_Bcast(ept, ne, MPI_LONG, 0, MPI_COMM_WORLD);
+    MPI_Bcast(npt, nn, MPI_LONG, 0, MPI_COMM_WORLD);
 
-    METIS_SetDefaultOptions(options);
+    MPI_Barrier(MPI_COMM_WORLD);
 
-    if (strcmp(part_type, "dual") == 0) {
-        METIS_PartMeshDual(&ne, &nn, 
-                                        eptr, eind, 
-                                        NULL, NULL, &ncommon, 
-                                        &procs, NULL, options, 
-                                        &obvl, ept, npt);
-    } else if (strcmp(part_type, "nodal") == 0 ) {
-        METIS_PartMeshNodal(&ne, &nn, 
-                                        eptr, eind, 
-                                        NULL, NULL, 
-                                        &procs,
-                                        NULL, options, 
-                                        &obvl, ept, npt);
-    } else if (strcmp(part_type, "classical") == 0) {
+    printf("FUCK YOU THIRD time\n");
 
+    // each node counts how many elements it must have
+    int number_of_elements_per_node = 0;
+    for(i = 0; i < ne; ++i)
+        if (ept[i] == my_rank)
+            ++number_of_elements_per_node;
 
-    } else {
-        printf("unknown partition type\n");
-        MPI_Abort(MPI_COMM_WORLD, -1);
+    printf("Node %d has %d elements\n", my_rank, number_of_elements_per_node);
+
+    *cgup = (double*) calloc(sizeof(double), number_of_elements_per_node);
+    *local_global_index = (int*) calloc(sizeof(int), number_of_elements_per_node); // map local to global
+
+    int next_elem = 0;
+    for(i = 0; i < ne; ++i) {
+        if (ept[i] == my_rank) {
+            local_global_index[next_elem] = i;
+            ++next_elem;
+        }
     }
 
 
-    printf("Number of volumes %lu\n", obvl);
-    printf("----------------------------------------\n");
-
-
-   
-    }
+    for(i = 0; i < number_of_elements_per_node; ++i)
+        cgup[i] = glob_cgup[local_global_index[i]];
 
 
     return 0;
