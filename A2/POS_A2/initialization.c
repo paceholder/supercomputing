@@ -12,6 +12,53 @@
 #include "util_read_files.h"
 #include "initialization.h"
 
+void allocate_memory_for_distributed_arrays(int** local_global_index,
+                                            double** cgup, 
+                                            double** bn,
+                                            double** be,
+                                            double** bs,
+                                            double** bw,
+                                            double** bh,
+                                            double** bl,
+                                            double** bp,
+                                            int array_size)
+{
+    *local_global_index = (int*) calloc(array_size, sizeof(int));
+    *cgup = (double*) calloc(array_size, sizeof(double));
+    *bn = (double*) calloc(array_size, sizeof(double)); // map local to global
+    *be = (double*) calloc(array_size, sizeof(double)); // map local to global
+    *bs = (double*) calloc(array_size, sizeof(double)); // map local to global
+    *bw = (double*) calloc(array_size, sizeof(double)); // map local to global
+    *bh = (double*) calloc(array_size, sizeof(double)); // map local to global
+    *bl = (double*) calloc(array_size, sizeof(double)); // map local to global
+    *bp = (double*) calloc(array_size, sizeof(double)); // map local to global
+
+}
+
+void send_distributed_arrays(int* local_global_index,
+                            double* cgup, 
+                            double* bn,
+                            double* be,
+                            double* bs,
+                            double* bw,
+                            double* bh,
+                            double* bl,
+                            double* bp,
+                            int ne_send,
+                            int proc_receiver)
+{
+    MPI_Send(local_global_index, ne_send, MPI_INT, proc_receiver, 9, MPI_COMM_WORLD);
+    MPI_Send(cgup, ne_send, MPI_DOUBLE, proc_receiver, 10, MPI_COMM_WORLD);
+    MPI_Send(be, ne_send, MPI_DOUBLE, proc_receiver, 11, MPI_COMM_WORLD);
+    MPI_Send(bn, ne_send, MPI_DOUBLE, proc_receiver, 12, MPI_COMM_WORLD);
+    MPI_Send(bw, ne_send, MPI_DOUBLE, proc_receiver, 13, MPI_COMM_WORLD);
+    MPI_Send(bs, ne_send, MPI_DOUBLE, proc_receiver, 14, MPI_COMM_WORLD);
+    MPI_Send(bh, ne_send, MPI_DOUBLE, proc_receiver, 15, MPI_COMM_WORLD);
+    MPI_Send(bl, ne_send, MPI_DOUBLE, proc_receiver, 16, MPI_COMM_WORLD);
+    MPI_Send(bp, ne_send, MPI_DOUBLE, proc_receiver, 17, MPI_COMM_WORLD);
+}
+
+
 int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int* nextci,
                    int* nextcf, int*** lcc, double** bs, double** be, double** bn, double** bw,
                    double** bl, double** bh, double** bp, double** su, int* points_count,
@@ -34,6 +81,15 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
     double* glob_oc; 
     double* glob_cnorm; 
 
+    double* glob_bs;
+    double* glob_be;
+    double* glob_bn;
+    double* glob_bw;
+    double* glob_bl;
+    double* glob_bh;
+    double* glob_bp;
+
+
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
     
@@ -43,8 +99,10 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
         printf("Before reading the files %d\n", my_rank);
 
         // read-in the input file
-        int f_status = read_binary_geo(file_in, &*nintci, &*nintcf, &*nextci, &*nextcf, &*lcc, &*bs,
-                                       &*be, &*bn, &*bw, &*bl, &*bh, &*bp, &*su, &*points_count,
+        int f_status = read_binary_geo(file_in, &*nintci, &*nintcf, &*nextci, &*nextcf, &*lcc,
+                                       &glob_bs, &glob_be, &glob_bn, &glob_bw, 
+                                       &glob_bl, &glob_bh, &glob_bp, 
+                                       &*su, &*points_count,
                                        &*points, elems);
 
         printf("Reading the files %d\n", my_rank);
@@ -140,7 +198,6 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
     MPI_Bcast(&ne, 1, MPI_LONG, 0, MPI_COMM_WORLD);
     MPI_Bcast(&nn, 1, MPI_LONG, 0, MPI_COMM_WORLD);
 
-    printf("FUCK YOU first time\n");
     printf("%d - ne: %lu\n;", my_rank, ne);
 
     if (my_rank != 0) {
@@ -149,8 +206,6 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
         printf("ALLOCATE %d\n", my_rank);
     }
 
-    printf("FUCK YOU second time\n");
-    printf("%d - nn: %lu\n;", my_rank, nn);
 
     // distribute METIS arrays
     MPI_Bcast(ept, ne, MPI_LONG, 0, MPI_COMM_WORLD);
@@ -158,31 +213,132 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    printf("FUCK YOU THIRD time\n");
 
-    // each node counts how many elements it must have
-    int number_of_elements_per_node = 0;
-    for(i = 0; i < ne; ++i)
-        if (ept[i] == my_rank)
-            ++number_of_elements_per_node;
 
-    printf("Node %d has %d elements\n", my_rank, number_of_elements_per_node);
+    // filling local_global_index array
+    int* number_of_elements_arr;
+    if (my_rank == 0) {
+        number_of_elements_arr = (int*) calloc(sizeof(int), num_procs);
 
-    *cgup = (double*) calloc(sizeof(double), number_of_elements_per_node);
-    *local_global_index = (int*) calloc(sizeof(int), number_of_elements_per_node); // map local to global
-
-    int next_elem = 0;
-    for(i = 0; i < ne; ++i) {
-        if (ept[i] == my_rank) {
-            local_global_index[next_elem] = i;
-            ++next_elem;
+        // count number of elements for each process
+        for(i = 0; i < ne; ++i) {
+            number_of_elements_arr[ept[i]] += 1;
         }
+
+        // Send number of elements to each process
+        for(j = 0; j < num_procs; ++j) {
+            MPI_Send(&(number_of_elements_arr[j]), 1, MPI_INT, j, 10, MPI_COMM_WORLD);
+        }
+
+        free(number_of_elements_arr);
     }
 
 
-    for(i = 0; i < number_of_elements_per_node; ++i)
-        cgup[i] = glob_cgup[local_global_index[i]];
+    // each process gets its number of elements
+    int number_of_elements;
+    MPI_Status status;
+    MPI_Recv(&number_of_elements, 1, MPI_INT, 0, 10, MPI_COMM_WORLD, &status);
 
+    printf("Node %d has %d elements\n", my_rank, number_of_elements);
+
+
+    // each process allocates memory for its arrays
+    
+
+    allocate_memory_for_distributed_arrays(local_global_index,
+                                           cgup,
+                                           bn, be,
+                                           bs, bw,
+                                           bh, bl, bp,
+                                           number_of_elements);
+
+    if (my_rank == 0) {
+        for(j = 1; j < num_procs; ++j) {
+            int* local_global_index_send;
+            double* cgup_send;
+            double* bn_send;
+            double* be_send;
+            double* bs_send;
+            double* bw_send;
+            double* bh_send;
+            double* bl_send;
+            double* bp_send;
+
+            allocate_memory_for_distributed_arrays(&local_global_index_send,
+                                                   &cgup_send,
+                                                   &bn_send,
+                                                   &be_send,
+                                                   &bs_send,
+                                                   &bw_send,
+                                                   &bh_send,
+                                                   &bl_send,
+                                                   &bp_send,
+                                                   number_of_elements_arr[j]);
+
+            int current_index = 0;
+            for(i = 0; i < ne; ++i) {
+                if (ept[i] == j) {
+                    local_global_index_send[current_index] = i;
+
+                    cgup_send[current_index] = glob_cgup[i];
+                    be_send[current_index] = glob_be[i];
+                    bs_send[current_index] = glob_bs[i];
+                    bw_send[current_index] = glob_bw[i];
+                    bh_send[current_index] = glob_bh[i];
+                    bl_send[current_index] = glob_bl[i];
+                    bp_send[current_index] = glob_bp[i];
+
+                    ++current_index; 
+                }
+            }
+
+            int ne_send = number_of_elements_arr[j];
+            if (j != 0) {
+                send_distributed_arrays(local_global_index_send,
+                                        cgup_send,
+                                        bn_send, be_send,
+                                        bs_send, bw_send, 
+                                        bh_send, bl_send, 
+                                        bp_send, ne_send, j);
+            } else { // for 0 process we just copy values without MPI
+                memcpy(local_global_index, local_global_index_send, ne_send * sizeof(int));
+                memcpy(cgup, cgup_send, ne_send * sizeof(double));
+                memcpy(bn, bn_send, ne_send * sizeof(double));
+                memcpy(be, be_send, ne_send * sizeof(double));
+                memcpy(bs, bs_send, ne_send * sizeof(double));
+                memcpy(bw, bw_send, ne_send * sizeof(double));
+                memcpy(bh, bh_send, ne_send * sizeof(double));
+                memcpy(bl, bl_send, ne_send * sizeof(double));
+                memcpy(bp, bp_send, ne_send * sizeof(double));
+            } 
+
+            free(local_global_index_send);
+            free(be_send);
+            free(bn_send);
+            free(bw_send);
+            free(bs_send);
+            free(bh_send);
+            free(bl_send);
+            free(bp_send);
+        }
+
+
+    }
+
+
+    // all processes receive distributed arrays
+    if (my_rank != 0) {
+        MPI_Status status;
+        MPI_Recv(local_global_index, number_of_elements, MPI_INT, 0, 9, MPI_COMM_WORLD, &status);
+        MPI_Recv(cgup, number_of_elements, MPI_DOUBLE, 0, 10, MPI_COMM_WORLD, &status);
+        MPI_Recv(be, number_of_elements, MPI_DOUBLE, 0, 11, MPI_COMM_WORLD, &status);
+        MPI_Recv(bn, number_of_elements, MPI_DOUBLE, 0, 12, MPI_COMM_WORLD, &status);
+        MPI_Recv(bw, number_of_elements, MPI_DOUBLE, 0, 13, MPI_COMM_WORLD, &status);
+        MPI_Recv(bs, number_of_elements, MPI_DOUBLE, 0, 14, MPI_COMM_WORLD, &status);
+        MPI_Recv(bh, number_of_elements, MPI_DOUBLE, 0, 15, MPI_COMM_WORLD, &status);
+        MPI_Recv(bl, number_of_elements, MPI_DOUBLE, 0, 16, MPI_COMM_WORLD, &status);
+        MPI_Recv(bp, number_of_elements, MPI_DOUBLE, 0, 17, MPI_COMM_WORLD, &status);
+    }
 
     return 0;
 }
