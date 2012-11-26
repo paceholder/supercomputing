@@ -134,6 +134,7 @@ int main(int argc, char *argv[]) {
     free(points);
     */
 
+    printf("BEFORE FINALIZE - proc %d\n", my_rank);
 
     MPI_Finalize();    /// Cleanup MPI
 
