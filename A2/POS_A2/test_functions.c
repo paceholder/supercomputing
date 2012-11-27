@@ -5,6 +5,8 @@
  * @author V. Petkov
  */
 #include <stdio.h>
+#include <stdlib.h>
+
 #include "test_functions.h"
 
 #include "util_write_files.h"
