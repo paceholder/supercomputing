@@ -187,6 +187,9 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
             printf("unknown partition type\n");
             MPI_Abort(MPI_COMM_WORLD, -1);
         }
+
+        free(eptr);
+        free(eind);
     }
 
 
