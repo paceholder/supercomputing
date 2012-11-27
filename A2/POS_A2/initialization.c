@@ -212,7 +212,8 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
     // filling local_global_index array
     int* number_of_elements_arr = 0;
     if (my_rank == 0) {
-        number_of_elements_arr = (int*) calloc(sizeof(int), num_procs);
+        printf("NUM PROCS %d\n", num_procs);
+        number_of_elements_arr = (int*) calloc(num_procs, sizeof(int));
 
         // count number of elements for each process
         for(i = 0; i < ne; ++i) {
@@ -226,6 +227,7 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
 
         // explicit copyinf for 0 process
         number_of_elements = number_of_elements_arr[0];
+        printf("NUMBER OF ELEMENTS IN 0 PROCESS %d\n", number_of_elements);
     } else {
         // each process gets its number of elements
         MPI_Status status;
@@ -292,10 +294,8 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
 
 
 
-            printf("BEGIN SEND %d\n", j);
             int ne_send = number_of_elements_arr[j];
             if (j != 0) {
-                printf("SEND %d ELEMENTS\n", ne_send);
                 send_distributed_arrays(local_global_index_send,
                                         cgup_send,
                                         bn_send, be_send,
@@ -313,7 +313,6 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
                 memcpy(bl, bl_send, ne_send * sizeof(double));
                 memcpy(bp, bp_send, ne_send * sizeof(double));
             } 
-            printf("END SEND %d\n", j);
 
             free(local_global_index_send);
             free(be_send);
@@ -331,7 +330,6 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
 
     // all processes receive distributed arrays
     if (my_rank != 0) {
-        printf("BEGIN RECEIVE %d\n", my_rank);
         MPI_Status status;
         MPI_Recv(*local_global_index, number_of_elements, MPI_INT, 0, 9, MPI_COMM_WORLD, &status);
         MPI_Recv(*cgup, number_of_elements, MPI_DOUBLE, 0, 10, MPI_COMM_WORLD, &status);
@@ -342,11 +340,17 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
         MPI_Recv(*bh, number_of_elements, MPI_DOUBLE, 0, 15, MPI_COMM_WORLD, &status);
         MPI_Recv(*bl, number_of_elements, MPI_DOUBLE, 0, 16, MPI_COMM_WORLD, &status);
         MPI_Recv(*bp, number_of_elements, MPI_DOUBLE, 0, 17, MPI_COMM_WORLD, &status);
-        printf("END RECEIVE %d\n", my_rank);
     }
 
     *nintci = 0;
     *nintcf = number_of_elements -1;
+
+    if (my_rank == 3)
+    {
+        printf("local to global %p\n", *local_global_index);
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
 
     return 0;
 }
