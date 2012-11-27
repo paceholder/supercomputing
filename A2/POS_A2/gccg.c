@@ -85,8 +85,14 @@ int main(int argc, char *argv[]) {
     }
 
     if ( my_rank == 3) {
+
+        char file_vtk_out[1000];
+        strcpy(file_vtk_out, out_prefix);
+        strcat(file_vtk_out, file_in);
+        strcat(file_vtk_out, ".vtk");
         // Implement this function in test_functions.c and call it here
-        test_distribution(file_in, file_vtk_out, local_global_index, nintci, cgup); 
+        printf("TEST DISTRIBUTION %s, %s, %d, %d, %d\n", file_in, file_vtk_out, local_global_index, nintcf, cgup);
+        test_distribution(file_in, file_vtk_out, local_global_index, nintcf, cgup); 
     }
 
     // Implement this function in test_functions.c and call it here
