@@ -84,8 +84,10 @@ int main(int argc, char *argv[]) {
         MPI_Abort(MPI_COMM_WORLD, my_rank);
     }
 
-    // Implement this function in test_functions.c and call it here
-//    test_distribution(file_in, file_vtk_out, local_global_index, num_elems, cgup_local); 
+    if ( my_rank == 3) {
+        // Implement this function in test_functions.c and call it here
+        test_distribution(file_in, file_vtk_out, local_global_index, nintci, cgup); 
+    }
 
     // Implement this function in test_functions.c and call it here
     /*test_communication(file_in, file_vtk_out, local_global_index, num_elems,

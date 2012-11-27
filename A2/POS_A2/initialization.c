@@ -345,6 +345,9 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
         printf("END RECEIVE %d\n", my_rank);
     }
 
+    *nintci = 0;
+    *nintcf = number_of_elements -1;
+
     return 0;
 }
 
