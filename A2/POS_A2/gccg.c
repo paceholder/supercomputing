@@ -91,9 +91,6 @@ int main(int argc, char *argv[]) {
         strcat(file_vtk_out, file_in);
         strcat(file_vtk_out, ".vtk");
 
-
-        printf("TEST DISTRIBUTION %s, %s, localglob %p, nintcf %d, cgup %p\n", file_in, file_vtk_out, local_global_index, nintcf, cgup);
-
         test_distribution(file_in, file_vtk_out, local_global_index, nintcf, cgup); 
     }
 
@@ -116,14 +113,11 @@ int main(int argc, char *argv[]) {
             //     points, elems, var, cgup, su);
     /********** END FINALIZATION **********/
 
-    /*
-    printf("memory freeing %d\n", my_rank);
-
-    free(cnorm);
-    free(oc);
-    free(var);
+    //free(cnorm);
+    //free(oc);
+    //free(var);
     free(cgup);
-    free(su);
+    //free(su);
     free(bp);
     free(bh);
     free(bl);
@@ -131,8 +125,9 @@ int main(int argc, char *argv[]) {
     free(bn);
     free(be);
     free(bs);
-    free(elems);
+    //free(elems);
 
+    /*
     int i;
     for(i = 0; i < nintcf + 1; i++) {
         free(lcc[i]);
@@ -144,8 +139,6 @@ int main(int argc, char *argv[]) {
     }
     free(points);
     */
-
-    printf("BEFORE FINALIZE - proc %d\n", my_rank);
 
     MPI_Finalize();    /// Cleanup MPI
 

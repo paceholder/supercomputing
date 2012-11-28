@@ -61,6 +61,8 @@ void send_distributed_arrays(int* local_global_index,
     MPI_Send(bp, ne_send, MPI_DOUBLE, proc_receiver, 17, MPI_COMM_WORLD);
 }
 
+/**************************************************************************************/
+
 
 int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int* nextci,
                    int* nextcf, int*** lcc, double** bs, double** be, double** bn, double** bw,
@@ -190,7 +192,6 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
             printf("unknown partition type\n");
             MPI_Abort(MPI_COMM_WORLD, -1);
         }
-
         free(eptr);
         free(eind);
     }
@@ -218,7 +219,6 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
     // filling local_global_index array
     int* number_of_elements_arr = 0;
     if (my_rank == 0) {
-        printf("NUM PROCS %d\n", num_procs);
         number_of_elements_arr = (int*) calloc(num_procs, sizeof(int));
 
         // count number of elements for each process
@@ -233,20 +233,13 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
 
         // explicit copyinf for 0 process
         number_of_elements = number_of_elements_arr[0];
-        printf("NUMBER OF ELEMENTS IN 0 PROCESS %d\n", number_of_elements);
     } else {
         // each process gets its number of elements
         MPI_Status status;
         MPI_Recv(&number_of_elements, 1, MPI_INT, 0, 10, MPI_COMM_WORLD, &status);
     }
 
-    MPI_Barrier(MPI_COMM_WORLD);
-    printf("Node %d has %d elements\n", my_rank, number_of_elements);
 
-    // each process allocates memory for its arrays
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    
     allocate_memory_for_distributed_arrays(local_global_index,
                                            cgup,
                                            bn, be,
@@ -330,7 +323,17 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
             free(bp_send);
         }
 
-
+        free(glob_var);
+        free(glob_cgup);
+        free(glob_oc);
+        free(glob_cnorm);
+        free(glob_bs);
+        free(glob_be);
+        free(glob_bn);
+        free(glob_bw);
+        free(glob_bl);
+        free(glob_bh);
+        free(glob_bp);
     }
 
 
@@ -351,12 +354,17 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
     *nintci = 0;
     *nintcf = number_of_elements -1;
 
-    if (my_rank == 3)
-    {
-        printf("local to global %p\n", *local_global_index);
-    }
+    *epart = (int*) calloc(ne, sizeof(int));
+    *npart = (int*) calloc(nn, sizeof(int));
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    for(i = 0; i < ne; ++i)
+        (*epart)[i] = ept[i];
+
+    for(i = 0; i < nn; ++i)
+        (*npart)[i] = npt[i];
+
+    free(ept);
+    free(npt);
 
     return 0;
 }
