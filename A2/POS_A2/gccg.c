@@ -88,6 +88,7 @@ int main(int argc, char *argv[]) {
 
         char file_vtk_out[1000];
         strcpy(file_vtk_out, out_prefix);
+        strcpy(file_vtk_out, "_");
         strcat(file_vtk_out, file_in);
         strcat(file_vtk_out, ".vtk");
 

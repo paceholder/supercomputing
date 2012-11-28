@@ -177,7 +177,7 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
                             NULL, NULL, &ncommon, 
                             &procs, NULL, options, 
                             &obvl, ept, npt))
-                printf("EEEEEEEEERRRRRRRRRORRRRRR!!!\n");
+                printf("Error in METIS_PartMeshDual\n");
         } else if (strcmp(part_type, "nodal") == 0 ) {
             METIS_PartMeshNodal(&ne, &nn, 
                                 eptr, eind, 
@@ -187,6 +187,13 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
                                 &obvl, ept, npt);
         } else if (strcmp(part_type, "classical") == 0) {
 
+            int elems_per_node = ne / procs + 1;
+            printf("Elements per node %d\n", elems_per_node);
+
+            for(i = 0; i < ne; ++i) {
+                int p = i / elems_per_node;
+                ept[i] = p;
+            }
 
         } else {
             printf("unknown partition type\n");
