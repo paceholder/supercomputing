@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
         MPI_Abort(MPI_COMM_WORLD, my_rank);
     }
 
-    if ( my_rank == 1) {
+    if ( my_rank == 3) {
 
         char file_vtk_out[1000];
         strcpy(file_vtk_out, out_prefix);
