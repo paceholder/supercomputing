@@ -16,16 +16,15 @@
 #include "initialization.h"
 
 void allocate_memory_for_distributed_arrays(int** local_global_index,
-                                            double** cgup, 
-                                            double** bn,
-                                            double** be,
-                                            double** bs,
-                                            double** bw,
-                                            double** bh,
-                                            double** bl,
-                                            double** bp,
-                                            int array_size)
-{
+        double** cgup,
+        double** bn,
+        double** be,
+        double** bs,
+        double** bw,
+        double** bh,
+        double** bl,
+        double** bp,
+        int array_size) {
     *local_global_index = (int*) calloc(array_size, sizeof(int));
     *cgup = (double*) calloc(array_size, sizeof(double));
     *bn = (double*) calloc(array_size, sizeof(double)); // map local to global
@@ -39,17 +38,16 @@ void allocate_memory_for_distributed_arrays(int** local_global_index,
 }
 
 void send_distributed_arrays(int* local_global_index,
-                            double* cgup, 
-                            double* bn,
-                            double* be,
-                            double* bs,
-                            double* bw,
-                            double* bh,
-                            double* bl,
-                            double* bp,
-                            int ne_send,
-                            int proc_receiver)
-{
+                             double* cgup,
+                             double* bn,
+                             double* be,
+                             double* bs,
+                             double* bw,
+                             double* bh,
+                             double* bl,
+                             double* bp,
+                             int ne_send,
+                             int proc_receiver) {
     MPI_Send(local_global_index, ne_send, MPI_INT, proc_receiver, 9, MPI_COMM_WORLD);
     MPI_Send(cgup, ne_send, MPI_DOUBLE, proc_receiver, 10, MPI_COMM_WORLD);
     MPI_Send(be, ne_send, MPI_DOUBLE, proc_receiver, 11, MPI_COMM_WORLD);
@@ -81,10 +79,10 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
     idx_t *ept;
     idx_t *npt;
 
-    double* glob_var; 
+    double* glob_var;
     double* glob_cgup;
-    double* glob_oc; 
-    double* glob_cnorm; 
+    double* glob_oc;
+    double* glob_cnorm;
 
     double* glob_bs;
     double* glob_be;
@@ -97,7 +95,7 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
 
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
-    
+
 
     if (my_rank == 0) {
 
@@ -105,8 +103,8 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
 
         // read-in the input file
         int f_status = read_binary_geo(file_in, &*nintci, &*nintcf, &*nextci, &*nextcf, &*lcc,
-                                       &glob_bs, &glob_be, &glob_bn, &glob_bw, 
-                                       &glob_bl, &glob_bh, &glob_bp, 
+                                       &glob_bs, &glob_be, &glob_bn, &glob_bw,
+                                       &glob_bl, &glob_bh, &glob_bp,
                                        &*su, &*points_count,
                                        &*points, elems);
 
@@ -172,18 +170,18 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
 
 
         if (strcmp(part_type, "dual") == 0) {
-            if (METIS_OK != METIS_PartMeshDual(&ne, &nn, 
-                            eptr, eind, 
-                            NULL, NULL, &ncommon, 
-                            &procs, NULL, options, 
-                            &obvl, ept, npt))
+            if (METIS_OK != METIS_PartMeshDual(&ne, &nn,
+                                               eptr, eind,
+                                               NULL, NULL, &ncommon,
+                                               &procs, NULL, options,
+                                               &obvl, ept, npt))
                 printf("Error in METIS_PartMeshDual\n");
         } else if (strcmp(part_type, "nodal") == 0 ) {
-            METIS_PartMeshNodal(&ne, &nn, 
-                                eptr, eind, 
-                                NULL, NULL, 
+            METIS_PartMeshNodal(&ne, &nn,
+                                eptr, eind,
+                                NULL, NULL,
                                 &procs,
-                                NULL, options, 
+                                NULL, options,
                                 &obvl, ept, npt);
         } else if (strcmp(part_type, "classical") == 0) {
 
@@ -203,7 +201,6 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
         free(eind);
     }
 
-
     // distribute lengths of METIS arrays
     MPI_Bcast(&ne, 1, MPI_LONG, 0, MPI_COMM_WORLD);
     MPI_Bcast(&nn, 1, MPI_LONG, 0, MPI_COMM_WORLD);
@@ -213,13 +210,11 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
         npt = (idx_t*) malloc (nn * sizeof(idx_t));
     }
 
-
     // distribute METIS arrays
     MPI_Bcast(ept, ne, MPI_LONG, 0, MPI_COMM_WORLD);
     MPI_Bcast(npt, nn, MPI_LONG, 0, MPI_COMM_WORLD);
 
     MPI_Barrier(MPI_COMM_WORLD);
-
 
     int number_of_elements;
 
@@ -251,12 +246,9 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
                                            cgup,
                                            bn, be,
                                            bs, bw,
-                                           bh, bl, 
+                                           bh, bl,
                                            bp,
                                            number_of_elements);
-
-    MPI_Barrier(MPI_COMM_WORLD);
-
 
     if (my_rank == 0) {
         for(j = 1; j < num_procs; ++j) {
@@ -294,10 +286,9 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
                     bl_send[current_index] = glob_bl[i];
                     bp_send[current_index] = glob_bp[i];
 
-                    ++current_index; 
+                    ++current_index;
                 }
             }
-
 
 
             int ne_send = number_of_elements_arr[j];
@@ -305,8 +296,8 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
                 send_distributed_arrays(local_global_index_send,
                                         cgup_send,
                                         bn_send, be_send,
-                                        bs_send, bw_send, 
-                                        bh_send, bl_send, 
+                                        bs_send, bw_send,
+                                        bh_send, bl_send,
                                         bp_send, ne_send, j);
             } else { // for 0 process we just copy values without MPI
                 memcpy(local_global_index, local_global_index_send, ne_send * sizeof(int));
@@ -318,7 +309,7 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
                 memcpy(bh, bh_send, ne_send * sizeof(double));
                 memcpy(bl, bl_send, ne_send * sizeof(double));
                 memcpy(bp, bp_send, ne_send * sizeof(double));
-            } 
+            }
 
             free(local_global_index_send);
             free(be_send);
