@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
         strcat(file_vtk_out, file_in);
         strcat(file_vtk_out, ".vtk");
 
-        test_distribution(file_in, file_vtk_out, local_global_index, nintcf, cgup); 
+        test_distribution(file_in, file_vtk_out, local_global_index, nintcf, cgup);
     }
 
 
@@ -104,14 +104,14 @@ int main(int argc, char *argv[]) {
 
     /********** START COMPUTATIONAL LOOP **********/
     //int total_iters = compute_solution(max_iters, nintci, nintcf, nextcf, lcc, bp, bs, bw, bl, bn,
-      //                                 be, bh, cnorm, var, su, cgup, &residual_ratio,
-        //                               local_global_index, global_local_index, neighbors_count,
-          //                             send_count, send_list, recv_count, recv_list);
+    //                                 be, bh, cnorm, var, su, cgup, &residual_ratio,
+    //                               local_global_index, global_local_index, neighbors_count,
+    //                             send_count, send_list, recv_count, recv_list);
     /********** END COMPUTATIONAL LOOP **********/
 
     /********** START FINALIZATION **********/
     // finalization(file_in, out_prefix, total_iters, residual_ratio, nintci, nintcf, points_count,
-            //     points, elems, var, cgup, su);
+    //     points, elems, var, cgup, su);
     /********** END FINALIZATION **********/
 
     //free(cnorm);

@@ -14,7 +14,7 @@
 
 #include "mpi.h"
 
-int test_distribution(char *file_in, char *file_vtk_out, int *local_global_index, int num_elems, 
+int test_distribution(char *file_in, char *file_vtk_out, int *local_global_index, int num_elems,
                       double *cgup) {
 
     int nintci;
@@ -29,7 +29,7 @@ int test_distribution(char *file_in, char *file_vtk_out, int *local_global_index
     double* bl;
     double* bh;
     double* bp;
-    
+
     double* su;
     int points_count;
     int** points;
@@ -38,10 +38,10 @@ int test_distribution(char *file_in, char *file_vtk_out, int *local_global_index
     double* v = NULL;
 
     int f_status = read_binary_geo(file_in, &nintci, &nintcf, &nextci, &nextcf, &lcc,
-                                    &bs, &be, &bn, &bw, 
-                                    &bl, &bh, &bp, 
-                                    &su, &points_count,
-                                    &points, &elems);
+                                   &bs, &be, &bn, &bw,
+                                   &bl, &bh, &bp,
+                                   &su, &points_count,
+                                   &points, &elems);
 
     int my_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
@@ -50,21 +50,21 @@ int test_distribution(char *file_in, char *file_vtk_out, int *local_global_index
 
     v = (double*) malloc( (size_t)(nintcf+1) * sizeof(double));
 
-    int i; 
+    int i;
     for(i = 0; i <= num_elems; ++i) {
         v[local_global_index[i]] = cgup[i];
     }
 
 
     vtk_append_double(file_vtk_out, "partition", 0, nintcf, v);
-    
+
     free(v);
 
     return 0;
 }
 
-int test_communication(char *file_in, char *file_vtk_out, int *local_global_index, int *num_elems, 
-                       int neighbors_count, int* send_count, int** send_list, int* recv_count, 
+int test_communication(char *file_in, char *file_vtk_out, int *local_global_index, int *num_elems,
+                       int neighbors_count, int* send_count, int** send_list, int* recv_count,
                        int** recv_list) {
     // Return an error if not implemented
     return -1;
