@@ -246,6 +246,8 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
                                            bp,
                                            number_of_elements);
 
+    *global_local_index = malloc(ne, sizeof(int));
+
     if ( my_rank == 0 ) {
         for ( j = 1; j < num_procs; ++j ) {
             int* local_global_index_send;
@@ -273,6 +275,7 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
             for ( i = 0; i < ne; ++i ) {
                 if ( ept[i] == j ) {
                     local_global_index_send[current_index] = i;
+                    (*global_local_index)[i] = current_index;
 
                     cgup_send[current_index] = glob_cgup[i];
                     be_send[current_index] = glob_be[i];
@@ -330,6 +333,8 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
         free(glob_bh);
         free(glob_bp);
     }
+
+    MPI_Bcast(*global_local_index, ne, MPI_INT, 0, MPI_COMM_WORLD);
 
 
     // all processes receive distributed arrays
