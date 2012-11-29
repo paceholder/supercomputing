@@ -16,7 +16,6 @@
 
 int test_distribution(char *file_in, char *file_vtk_out, int *local_global_index, int num_elems,
                       double *cgup) {
-
     int nintci;
     int nintcf;
     int nextci;
@@ -51,7 +50,7 @@ int test_distribution(char *file_in, char *file_vtk_out, int *local_global_index
     v = (double*) malloc( (size_t)(nintcf+1) * sizeof(double));
 
     int i;
-    for(i = 0; i <= num_elems; ++i) {
+    for ( i = 0; i <= num_elems; ++i ) {
         v[local_global_index[i]] = cgup[i];
     }
 

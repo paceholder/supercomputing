@@ -84,8 +84,7 @@ int main(int argc, char *argv[]) {
         MPI_Abort(MPI_COMM_WORLD, my_rank);
     }
 
-    if ( my_rank == 3) {
-
+    if ( my_rank == 3 ) {
         char file_vtk_out[1000];
         strcat(file_vtk_out, out_prefix);
         strcat(file_vtk_out, "_");
@@ -101,24 +100,22 @@ int main(int argc, char *argv[]) {
      neighbors_count, send_count, send_list, recv_count, recv_list);*/
 
     /********** END INITIALIZATION **********/
-
     /********** START COMPUTATIONAL LOOP **********/
-    //int total_iters = compute_solution(max_iters, nintci, nintcf, nextcf, lcc, bp, bs, bw, bl, bn,
+    // int total_iters = compute_solution(max_iters, nintci, nintcf, nextcf, lcc, bp, bs, bw, bl,
+    // bn,
     //                                 be, bh, cnorm, var, su, cgup, &residual_ratio,
     //                               local_global_index, global_local_index, neighbors_count,
     //                             send_count, send_list, recv_count, recv_list);
     /********** END COMPUTATIONAL LOOP **********/
-
     /********** START FINALIZATION **********/
     // finalization(file_in, out_prefix, total_iters, residual_ratio, nintci, nintcf, points_count,
     //     points, elems, var, cgup, su);
     /********** END FINALIZATION **********/
-
-    //free(cnorm);
-    //free(oc);
-    //free(var);
+    // free(cnorm);
+    // free(oc);
+    // free(var);
     free(cgup);
-    //free(su);
+    // free(su);
     free(bp);
     free(bh);
     free(bl);
@@ -126,7 +123,7 @@ int main(int argc, char *argv[]) {
     free(bn);
     free(be);
     free(bs);
-    //free(elems);
+    // free(elems);
 
     /*
     int i;

@@ -27,14 +27,13 @@ void allocate_memory_for_distributed_arrays(int** local_global_index,
         int array_size) {
     *local_global_index = (int*) calloc(array_size, sizeof(int));
     *cgup = (double*) calloc(array_size, sizeof(double));
-    *bn = (double*) calloc(array_size, sizeof(double)); // map local to global
-    *be = (double*) calloc(array_size, sizeof(double)); // map local to global
-    *bs = (double*) calloc(array_size, sizeof(double)); // map local to global
-    *bw = (double*) calloc(array_size, sizeof(double)); // map local to global
-    *bh = (double*) calloc(array_size, sizeof(double)); // map local to global
-    *bl = (double*) calloc(array_size, sizeof(double)); // map local to global
-    *bp = (double*) calloc(array_size, sizeof(double)); // map local to global
-
+    *bn = (double*) calloc(array_size, sizeof(double));
+    *be = (double*) calloc(array_size, sizeof(double));
+    *bs = (double*) calloc(array_size, sizeof(double));
+    *bw = (double*) calloc(array_size, sizeof(double));
+    *bh = (double*) calloc(array_size, sizeof(double));
+    *bl = (double*) calloc(array_size, sizeof(double));
+    *bp = (double*) calloc(array_size, sizeof(double));
 }
 
 void send_distributed_arrays(int* local_global_index,
@@ -98,7 +97,6 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
 
 
     if (my_rank == 0) {
-
         printf("Before reading the files %d\n", my_rank);
 
         // read-in the input file
@@ -148,18 +146,18 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
         ne = *nintcf+1;
         nn = *points_count;
 
-        idx_t* eptr = (idx_t*) malloc  ((ne + 1) * sizeof(idx_t));
-        for(i = 0; i < ne + 1; ++i)
+        idx_t* eptr = (idx_t*) malloc((ne + 1) * sizeof(idx_t));
+        for ( i = 0; i < ne + 1; ++i )
             eptr[i] = i * 8;
 
 
-        idx_t* eind = (idx_t*) malloc (ne * sizeof(idx_t) * 8);
+        idx_t* eind = (idx_t*) malloc(ne * sizeof(idx_t) * 8);
 
-        for(i = 0; i < ne * 8; ++i)
+        for ( i = 0; i < ne * 8; ++i )
             eind[i] = (*elems)[i];
 
-        ept = (idx_t*) malloc (ne * sizeof(idx_t));
-        npt = (idx_t*) malloc (nn * sizeof(idx_t));
+        ept = (idx_t*) malloc(ne * sizeof(idx_t));
+        npt = (idx_t*) malloc(nn * sizeof(idx_t));
 
         idx_t obvl;
         idx_t ncommon = 4;
@@ -169,14 +167,14 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
 
 
 
-        if (strcmp(part_type, "dual") == 0) {
+        if ( strcmp(part_type, "dual") == 0 ) {
             if (METIS_OK != METIS_PartMeshDual(&ne, &nn,
                                                eptr, eind,
                                                NULL, NULL, &ncommon,
                                                &procs, NULL, options,
                                                &obvl, ept, npt))
                 printf("Error in METIS_PartMeshDual\n");
-        } else if (strcmp(part_type, "nodal") == 0 ) {
+        } else if ( strcmp(part_type, "nodal") == 0 ) {
             METIS_PartMeshNodal(&ne, &nn,
                                 eptr, eind,
                                 NULL, NULL,
@@ -184,15 +182,13 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
                                 NULL, options,
                                 &obvl, ept, npt);
         } else if (strcmp(part_type, "classical") == 0) {
-
             int elems_per_node = ne / procs + 1;
             printf("Elements per node %d\n", elems_per_node);
 
-            for(i = 0; i < ne; ++i) {
+            for ( i = 0; i < ne; ++i ) {
                 int p = i / elems_per_node;
                 ept[i] = p;
             }
-
         } else {
             printf("unknown partition type\n");
             MPI_Abort(MPI_COMM_WORLD, -1);
@@ -205,9 +201,9 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
     MPI_Bcast(&ne, 1, MPI_LONG, 0, MPI_COMM_WORLD);
     MPI_Bcast(&nn, 1, MPI_LONG, 0, MPI_COMM_WORLD);
 
-    if (my_rank != 0) {
-        ept = (idx_t*) malloc (ne * sizeof(idx_t));
-        npt = (idx_t*) malloc (nn * sizeof(idx_t));
+    if ( my_rank != 0 ) {
+        ept = (idx_t*) malloc(ne * sizeof(idx_t));
+        npt = (idx_t*) malloc(nn * sizeof(idx_t));
     }
 
     // distribute METIS arrays
@@ -224,12 +220,12 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
         number_of_elements_arr = (int*) calloc(num_procs, sizeof(int));
 
         // count number of elements for each process
-        for(i = 0; i < ne; ++i) {
+        for ( i = 0; i < ne; ++i ) {
             number_of_elements_arr[ept[i]] += 1;
         }
 
         // Send number of elements to each process
-        for(j = 1; j < num_procs; ++j) {
+        for ( j = 1; j < num_procs; ++j ) {
             MPI_Send(&(number_of_elements_arr[j]), 1, MPI_INT, j, 10, MPI_COMM_WORLD);
         }
 
@@ -250,8 +246,8 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
                                            bp,
                                            number_of_elements);
 
-    if (my_rank == 0) {
-        for(j = 1; j < num_procs; ++j) {
+    if ( my_rank == 0 ) {
+        for ( j = 1; j < num_procs; ++j ) {
             int* local_global_index_send;
             double* cgup_send;
             double* bn_send;
@@ -274,8 +270,8 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
                                                    number_of_elements_arr[j]);
 
             int current_index = 0;
-            for(i = 0; i < ne; ++i) {
-                if (ept[i] == j) {
+            for ( i = 0; i < ne; ++i ) {
+                if ( ept[i] == j ) {
                     local_global_index_send[current_index] = i;
 
                     cgup_send[current_index] = glob_cgup[i];
@@ -299,7 +295,8 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
                                         bs_send, bw_send,
                                         bh_send, bl_send,
                                         bp_send, ne_send, j);
-            } else { // for 0 process we just copy values without MPI
+            } else {
+                // for 0 process we just copy values without MPI
                 memcpy(local_global_index, local_global_index_send, ne_send * sizeof(int));
                 memcpy(cgup, cgup_send, ne_send * sizeof(double));
                 memcpy(bn, bn_send, ne_send * sizeof(double));
@@ -355,10 +352,10 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
     *epart = (int*) calloc(ne, sizeof(int));
     *npart = (int*) calloc(nn, sizeof(int));
 
-    for(i = 0; i < ne; ++i)
+    for ( i = 0; i < ne; ++i )
         (*epart)[i] = ept[i];
 
-    for(i = 0; i < nn; ++i)
+    for ( i = 0; i < nn; ++i )
         (*npart)[i] = npt[i];
 
     free(ept);
