@@ -83,8 +83,6 @@ int test_communication(char *file_in, char *file_vtk_out, int *local_global_inde
     int** points;
     int* elems;
 
-    printf("------------ READ DATA\n");
-
     int f_status = read_binary_geo(file_in, &nintci, &nintcf, &nextci, &nextcf, &lcc,
                                    &bs, &be, &bn, &bw,
                                    &bl, &bh, &bp,
@@ -96,40 +94,33 @@ int test_communication(char *file_in, char *file_vtk_out, int *local_global_inde
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
 
-//    vtk_write_unstr_grid_header(file_in, file_vtk_out, 0, nintcf, points_count, points, elems);
-
-    printf("HEADER WRITTEN\n");
-
-    double* commlist = NULL;
-    commlist = (double*) calloc( (nintcf + 1), sizeof(double));
+    int* commlist = NULL;
+    commlist = (int*) calloc( (nintcf + 1), sizeof(int));
     int i;
     for ( i = 0; i < (nintcf +1); ++i )
-        commlist[i] = 15.0;
+        commlist[i] = 0;
 
     // 5 received
     // 10 send
     // 15 other cells
-    printf("COMMLIST ALLOCATED\n");
 
     int j;
+
+    for ( i = 0; i <= num_elems; ++i ) {
+        commlist[local_global_index[i]] = 15;
+    }
+
     for ( i = 0; i < num_procs; ++i ) {
-
-        printf("COMMLIST FOR PROCSS %d\n", i);
-
         for ( j = 0; j < send_count[i]; ++j ) {
-            commlist[send_list[i][j]] = 10.0;
+            commlist[send_list[i][j]] = 10;
         }
         for ( j = 0; j < recv_count[i]; ++j ) {
-            commlist[recv_list[i][j]] = 5.0;
+            commlist[recv_list[i][j]] = 5;
         }
     }
 
-    printf("BEFORE APPEND DATA\n");
 
-    vtk_append_double(file_vtk_out, "communication", 0, nintcf, commlist);
-
-
-    printf("DATA WRITTEN\n");
+    vtk_append_integer(file_vtk_out, "communication", 0, nintcf, commlist);
 
     free(commlist);
 

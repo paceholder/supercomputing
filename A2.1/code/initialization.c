@@ -95,9 +95,6 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
 
-
-    printf("READ DATA FIRST TIME\n");
-
     // read-in the input file
     int f_status = read_binary_geo(file_in, &*nintci, &*nintcf, &*nextci, &*nextcf, &*lcc,
                                     &glob_bs, &glob_be, &glob_bn, &glob_bw,
@@ -175,8 +172,6 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
     free(eptr);
     free(eind);
 
-    printf("METIS DONE\n");
-
     // filling local_global_index array
     int number_of_elements = 0;
     // count number of elements for each process
@@ -214,14 +209,6 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
     }
 
 
-
-    printf("BEFORE COUNTING NEIGHBOURS\n");
-
-
-    MPI_Barrier(MPI_COMM_WORLD);
-
-
-
     // number of elements sending to neighbours
     *send_count = (int*) calloc(procs, sizeof(int));
     *recv_count = (int*) calloc(procs, sizeof(int));
@@ -250,7 +237,6 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
         }
     }
 
-    printf("BEFORE ALLOCATING SENT RECV ARRAYS\n");
 
     *send_list = (int**) calloc(procs, sizeof(int*));
     *recv_list = (int**) calloc(procs, sizeof(int*));
@@ -258,9 +244,6 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
         (*send_list)[i] = (int*) calloc((*send_count)[i], sizeof(int));
         (*recv_list)[i] = (int*) calloc((*recv_count)[i], sizeof(int));
     }
-
-
-    printf("BEFORE FILLING SENT RECV ARRAYS\n");
 
     int* current_indices = (int*) calloc(procs, sizeof(int));
     // traverce all local cells in this partition
@@ -279,11 +262,6 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
 
             // we must send information
             if ( partition != my_rank ) {
-                if ( my_rank == 2) {
-                    printf("partition %d Gindex  %d\n", partition, global_index);
-                    printf("partition %d nindex  %d\n", partition, neighbouring_cell);
-                }
-                    
                 (*send_list)[partition][current_indices[partition]] = global_index;
                 (*recv_list)[partition][current_indices[partition]] = neighbouring_cell;
                 current_indices[partition] += 1;
@@ -291,12 +269,8 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
         }
     }
 
-    printf("SENDING RECEIVING ARRAYS FILLED\n");
-
-
 //    free(current_indices);
 
-    printf(" ------- MEMORY FREED 0 \n");
     free(glob_var);
     free(glob_cgup);
     free(glob_oc);
@@ -323,7 +297,6 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
 
     free(ept);
     free(npt);
-
 
     return 0;
 }

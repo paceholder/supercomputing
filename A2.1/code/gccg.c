@@ -92,10 +92,8 @@ int main(int argc, char *argv[]) {
         strcat(file_vtk_out, file_in);
         strcat(file_vtk_out, ".vtk");
 
-        printf("BEFORE TEST DISTRIBUTION\n");
         test_distribution(file_in, file_vtk_out, local_global_index, nintcf, cgup);
 
-        printf("BEFORE TEST COMMUNICATION\n");
         test_communication(file_in, file_vtk_out, local_global_index, nintcf,
                             neighbors_count, send_count, send_list, recv_count, recv_list);
     }
