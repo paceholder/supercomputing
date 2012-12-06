@@ -250,7 +250,7 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
     for ( i = 0; i < number_of_elements; ++i ) {
         // global index of current cell
         int global_index = (*local_global_index)[i];
-    
+
         for ( j = 0; j < 6; ++j ) {
             // global index of neighbouring cell
             int neighbouring_cell = (*lcc)[global_index][j];
