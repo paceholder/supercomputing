@@ -12,7 +12,8 @@
 #include "util_write_files.h"
 #include "util_read_files.h"
 
-#include "mpi.h"
+#include <mpi.h>
+
 
 int test_distribution(char *file_in, char *file_vtk_out, int *local_global_index, int num_elems,
                       double *cgup) {
@@ -39,6 +40,7 @@ int test_distribution(char *file_in, char *file_vtk_out, int *local_global_index
     int f_status = read_binary_geo(file_in, &nintci, &nintcf, &nextci, &nextcf, &lcc,
                                    &bs, &be, &bn, &bw,
                                    &bl, &bh, &bp,
+                                   &cgup,
                                    &su, &points_count,
                                    &points, &elems);
 
@@ -77,7 +79,7 @@ int test_communication(char *file_in, char *file_vtk_out, int *local_global_inde
     double* bl;
     double* bh;
     double* bp;
-
+    double* cgup;
     double* su;
     int points_count;
     int** points;
@@ -86,6 +88,7 @@ int test_communication(char *file_in, char *file_vtk_out, int *local_global_inde
     int f_status = read_binary_geo(file_in, &nintci, &nintcf, &nextci, &nextcf, &lcc,
                                    &bs, &be, &bn, &bw,
                                    &bl, &bh, &bp,
+                                   &cgup,
                                    &su, &points_count,
                                    &points, &elems);
 

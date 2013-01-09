@@ -20,11 +20,8 @@ all: gccg
 %.o: %.c $(DEPS)
 	$(CC) -c -o  $@ $< $(CFLAGS) $(METIS_INC) 
 
-#test_functions.o : test_functions.c
-#	$(CC) -c test_functions.o test_functions.c
-
 gccg: gccg.c $(LIBPOS)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS) $(METIS_LIB)
+	$(CC) -o $@ $^ $(CFLAGS) $(LIBS) $(METIS_LIB) $(METIS_INC)
 
 $(LIBPOS) : $(OBJS)
 	$(AR) $(ARFLAGS) $@ $+

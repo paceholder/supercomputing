@@ -55,8 +55,8 @@ int main(int argc, char *argv[]) {
     int** recv_list;    /// send lists for the other neighbor (see send_list)
 
     /** Metis Results */
-    int* epart;     /// partition vector for the elements of the mesh
-    int* npart;     /// partition vector for the points (nodes) of the mesh
+    idx_t* epart;     /// partition vector for the elements of the mesh
+    idx_t* npart;     /// partition vector for the points (nodes) of the mesh
     int objval;    /// resulting edgecut of total communication volume (classical distrib->zeros)
 
     MPI_Init(&argc, &argv);    /// Start MPI

@@ -59,9 +59,12 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
 
         // compute new guess (approximation) for direc
         for ( nc = nintci; nc <= nintcf; nc++ ) {
-            direc2[nc] = bp[nc] * direc1[nc] - bs[nc] * direc1[lcc[nc][0]]
-                         - bw[nc] * direc1[lcc[nc][3]] - bl[nc] * direc1[lcc[nc][4]]
-                         - bn[nc] * direc1[lcc[nc][2]] - be[nc] * direc1[lcc[nc][1]]
+            direc2[nc] = bp[nc] * direc1[nc] 
+                         - bs[nc] * direc1[lcc[nc][0]]
+                         - bw[nc] * direc1[lcc[nc][3]]
+                         - bl[nc] * direc1[lcc[nc][4]]
+                         - bn[nc] * direc1[lcc[nc][2]]
+                         - be[nc] * direc1[lcc[nc][1]]
                          - bh[nc] * direc1[lcc[nc][5]];
         }
         /********** END COMP PHASE 1 **********/
