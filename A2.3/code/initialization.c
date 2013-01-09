@@ -43,6 +43,24 @@ void allocate_memory_for_distributed_arrays(double** var,
     *bp = (double*) calloc(array_size, sizeof(double));
 }
 
+
+// count number of elements for each process
+int get_number_of_local_elements(idx_t ne, idx_t** epart) {
+    int i;
+    int my_rank;
+    int number_of_elements = 0;
+
+
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+    
+    for ( i = 0; i < ne; ++i ) {
+        if ((*epart)[i] == my_rank)
+            number_of_elements += 1;
+    }
+
+    return number_of_elements;
+}
+
 void allocate_memory_for_mapping_arrays(int** local_global_index,
                                         int number_of_local_elements,
                                         int** global_local_index,
@@ -50,6 +68,8 @@ void allocate_memory_for_mapping_arrays(int** local_global_index,
     *local_global_index = (int*) calloc(number_of_local_elements, sizeof(int));
     *global_local_index = (int*) calloc(number_of_global_elements, sizeof(int));
 }
+
+
 
 void fill_local_arrays(int** local_global_index,
                        int** global_local_index,
@@ -162,6 +182,80 @@ void partitioning(idx_t ne, idx_t nn,
 }
 
 
+void fill_send_recv_arrays(int** send_count, int*** send_list,
+                           int** recv_count, int*** recv_list,
+                           int*** lcc,
+                           int number_of_elements,
+                           idx_t ne,
+                           int** local_global_index,
+                           idx_t** epart
+                           ) {
+    int i; int j;
+    int num_procs;
+    int my_rank;
+
+    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+
+    // number of elements sending to neighbours
+    *send_count = (int*) calloc(num_procs, sizeof(int));
+    *recv_count = (int*) calloc(num_procs, sizeof(int));
+
+
+    for ( i = 0; i < number_of_elements; ++i ) {
+        // global index of current local element
+        int global_index = (*local_global_index)[i];
+
+        // 6 directions - 6 neighbours
+        for ( j = 0; j < 6; ++j ) {
+            // global index of neighbouring cell
+            int neighbouring_cell = (*lcc)[global_index][j];
+
+            if ( neighbouring_cell > ne-1 )
+                continue;
+
+            // partititon of j-th neighbour
+            int partition = (*epart)[neighbouring_cell];
+
+            // we count how many times we send to each neighbour
+            if ( partition != my_rank ) {
+                (*send_count)[partition] += 1;
+                (*recv_count)[partition] += 1;
+            }
+        }
+    }
+
+    *recv_list = (int**) calloc(num_procs, sizeof(int*));
+
+    for ( i = 0; i < num_procs; ++i ) {
+        (*send_list)[i] = (int*) calloc((*send_count)[i], sizeof(int));
+        (*recv_list)[i] = (int*) calloc((*recv_count)[i], sizeof(int));
+    }
+
+    int* current_indices = (int*) calloc(num_procs, sizeof(int));
+    // traverce all local cells in this partition
+    for ( i = 0; i < number_of_elements; ++i ) {
+        // global index of current cell
+        int global_index = (*local_global_index)[i];
+    
+        for ( j = 0; j < 6; ++j ) {
+            // global index of neighbouring cell
+            int neighbouring_cell = (*lcc)[global_index][j];
+
+            if ( neighbouring_cell > ne-1 )
+                continue;
+
+            int partition = (*epart)[neighbouring_cell];
+
+            // we must send information
+            if ( partition != my_rank ) {
+                (*send_list)[partition][current_indices[partition]] = global_index;
+                (*recv_list)[partition][current_indices[partition]] = neighbouring_cell;
+                current_indices[partition] += 1;
+            }
+        }
+    }
+}
 
 
 
@@ -194,6 +288,7 @@ int initialization(char* file_in, char* part_type,
     int my_rank;
     idx_t ne;
     idx_t nn;
+    int number_of_elements = 0;
 
     double* glob_bs;
     double* glob_be;
@@ -232,14 +327,8 @@ int initialization(char* file_in, char* part_type,
                  epart, npart);
 
 
-    // filling local_global_index array
-    int number_of_elements = 0;
+    number_of_elements = get_number_of_local_elements(ne, epart);
 
-    // count number of elements for each process
-    for ( i = 0; i < ne; ++i ) {
-        if ((*epart)[i] == my_rank)
-            number_of_elements += 1;
-    }
 
     allocate_memory_for_distributed_arrays(var,
                                            cgup,
@@ -264,70 +353,18 @@ int initialization(char* file_in, char* part_type,
                       epart);
 
 
-
-    // number of elements sending to neighbours
-    *send_count = (int*) calloc(num_procs, sizeof(int));
-    *recv_count = (int*) calloc(num_procs, sizeof(int));
-
-
-    for ( i = 0; i < number_of_elements; ++i ) {
-        // global index of current local element
-        int global_index = (*local_global_index)[i];
-
-        // 6 directions - 6 neighbours
-        for ( j = 0; j < 6; ++j ) {
-            // global index of neighbouring cell
-            int neighbouring_cell = (*lcc)[global_index][j];
-
-            if ( neighbouring_cell > ne-1 )
-                continue;
-
-            // partititon of j-th neighbour
-            int partition = (*epart)[neighbouring_cell];
-
-            // we count how many times we send to each neighbour
-            if ( partition != my_rank ) {
-                (*send_count)[partition] += 1;
-                (*recv_count)[partition] += 1;
-            }
-        }
-    }
+    fill_send_recv_arrays(send_count, send_list,
+                          recv_count, recv_list,
+                          lcc,
+                          number_of_elements,
+                          ne,
+                          local_global_index,
+                          epart);
 
 
-    *send_list = (int**) calloc(num_procs, sizeof(int*));
-    *recv_list = (int**) calloc(num_procs, sizeof(int*));
 
-    for ( i = 0; i < num_procs; ++i ) {
-        (*send_list)[i] = (int*) calloc((*send_count)[i], sizeof(int));
-        (*recv_list)[i] = (int*) calloc((*recv_count)[i], sizeof(int));
-    }
 
-    int* current_indices = (int*) calloc(num_procs, sizeof(int));
-    // traverce all local cells in this partition
-    for ( i = 0; i < number_of_elements; ++i ) {
-        // global index of current cell
-        int global_index = (*local_global_index)[i];
-    
-        for ( j = 0; j < 6; ++j ) {
-            // global index of neighbouring cell
-            int neighbouring_cell = (*lcc)[global_index][j];
-
-            if ( neighbouring_cell > ne-1 )
-                continue;
-
-            int partition = (*epart)[neighbouring_cell];
-
-            // we must send information
-            if ( partition != my_rank ) {
-                (*send_list)[partition][current_indices[partition]] = global_index;
-                (*recv_list)[partition][current_indices[partition]] = neighbouring_cell;
-                current_indices[partition] += 1;
-            }
-        }
-    }
-
-//    free(current_indices);
-
+    // free(current_indices);
     // free(glob_var);
     // free(glob_cgup);
     // free(glob_oc);
