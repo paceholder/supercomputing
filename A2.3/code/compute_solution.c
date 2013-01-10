@@ -42,6 +42,15 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
         return 0;
     }
 
+    /* how many cells do we receive */
+
+    int total_recv = 0;
+    int i;
+    for ( i = 0; i < neighbors_count; ++i )
+        total_recv += recv_count[i];
+
+    int all_external_cells = 1;
+
     /** the computation vectors */
     double *direc1 = (double *) calloc(sizeof(double), (nextcf + 1));
     double *direc2 = (double *) calloc(sizeof(double), (nextcf + 1));

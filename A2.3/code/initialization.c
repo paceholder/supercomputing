@@ -44,6 +44,80 @@ void allocate_memory_for_distributed_arrays(double** var,
 }
 
 
+void fill_local_lcc(int** glob_lcc, 
+                    int*** lcc,
+                    int number_of_elements,
+                    idx_t ne,
+                    int** recv_count,
+                    int** local_global_index,
+                    int** global_local_index,
+                    idx_t** epart) {
+    int i;
+    int j;
+    int my_rank;
+    int neighbours_count;
+
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &neighbours_count);
+
+    int total_recv = 0;
+    for ( i = 0; i < neighbours_count; ++i )
+        total_recv += (*recv_count)[i];
+
+    /* an array of offsets for each neighbour to map lcc correctly */
+    int offsets[neighbours_count];
+    offsets[0] = 1;
+    for ( i = 1; i < neighbours_count; ++i )
+        offsets[i] = offsets[i-1] + (*recv_count)[i];
+
+    *lcc = (int**) calloc(number_of_elements, sizeof(int*));
+
+    for ( i = 0; i < number_of_elements; ++i ) {
+        (*lcc)[i] = calloc(6, sizeof(int));
+
+        // take global index for current local element
+        int gl_index = (*local_global_index)[i];
+    
+        int* cells = glob_lcc[gl_index];
+
+        for ( j = 0; j < 6; ++j ) {
+            int old_global_index = cells[j];
+            int new_local_index;
+
+            /*        indexing 
+             *
+             * | inner cells | recv1 | recv2 ... | outer one cell |
+             */
+
+            /* outer cell */
+            if (old_global_index > ne-1)
+                /* very last cell */
+                new_local_index = number_of_elements-1 + total_recv + 1;
+            /* inner cells and ghost layer */
+            else {
+                /* global index points to neighbour 
+                 * that means it is ghost layer 
+                 * */
+                if ( (*epart)[old_global_index] != my_rank ) {
+                    // global_local_index
+                }
+                    
+                    
+
+                new_local_index = (*global_local_index)[old_global_index];
+
+            }
+
+
+//            int neighbouring_cell = (*lcc)[global_index][j];
+  //          int local
+        }
+    }
+
+    
+}
+
+
 // count number of elements for each process
 int get_number_of_local_elements(idx_t ne, idx_t** epart) {
     int i;
@@ -93,8 +167,36 @@ void fill_local_arrays(int** local_global_index,
                        idx_t** epart) {
     int i;
     int my_rank;
+    int neighbours_count;
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// get number of processes
+    MPI_Comm_size(MPI_COMM_WORLD, &neighbours_count);    /// get number of processes
 
+    int current_index[neighbours_count];
+    for ( i = 0; i < neighbours_count; ++i )
+        current_index[i] = 0;
+
+    for ( i = 0; i < ne; ++i ) {
+        int partition = (*epart)[i];
+
+        if ( partition == my_rank ) {
+            (*local_global_index)[current_index[partition]] = i;
+
+            (*cgup)[current_index[partition]] = glob_cgup[i];
+            (*be)[current_index[partition]] = glob_be[i];
+            (*bs)[current_index[partition]] = glob_bs[i];
+            (*bw)[current_index[partition]] = glob_bw[i];
+            (*bh)[current_index[partition]] = glob_bh[i];
+            (*bl)[current_index[partition]] = glob_bl[i];
+            (*bp)[current_index[partition]] = glob_bp[i];
+        }
+
+        (*global_local_index)[i] = current_index[partition];
+
+        ++current_index[partition];
+
+    }
+        
+/*
     int current_index = 0;
     for ( i = 0; i < ne; ++i ) {
         if ( (*epart)[i] == my_rank ) {
@@ -111,7 +213,7 @@ void fill_local_arrays(int** local_global_index,
 
             ++current_index;
         }
-    }
+    } */
 }
 
 
@@ -184,7 +286,7 @@ void partitioning(idx_t ne, idx_t nn,
 
 void fill_send_recv_arrays(int** send_count, int*** send_list,
                            int** recv_count, int*** recv_list,
-                           int*** lcc,
+                           int** lcc,
                            int number_of_elements,
                            idx_t ne,
                            int** local_global_index,
@@ -209,7 +311,7 @@ void fill_send_recv_arrays(int** send_count, int*** send_list,
         // 6 directions - 6 neighbours
         for ( j = 0; j < 6; ++j ) {
             // global index of neighbouring cell
-            int neighbouring_cell = (*lcc)[global_index][j];
+            int neighbouring_cell = lcc[global_index][j];
 
             if ( neighbouring_cell > ne-1 )
                 continue;
@@ -225,6 +327,7 @@ void fill_send_recv_arrays(int** send_count, int*** send_list,
         }
     }
 
+    *send_list = (int**) calloc(num_procs, sizeof(int*));
     *recv_list = (int**) calloc(num_procs, sizeof(int*));
 
     for ( i = 0; i < num_procs; ++i ) {
@@ -240,7 +343,7 @@ void fill_send_recv_arrays(int** send_count, int*** send_list,
     
         for ( j = 0; j < 6; ++j ) {
             // global index of neighbouring cell
-            int neighbouring_cell = (*lcc)[global_index][j];
+            int neighbouring_cell = lcc[global_index][j];
 
             if ( neighbouring_cell > ne-1 )
                 continue;
@@ -299,12 +402,14 @@ int initialization(char* file_in, char* part_type,
     double* glob_bp;
     double* glob_cgup;
 
+    int** glob_lcc;
+
 
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
 
     // read-in the input file
-    int f_status = read_binary_geo(file_in, &*nintci, &*nintcf, &*nextci, &*nextcf, &*lcc,
+    int f_status = read_binary_geo(file_in, nintci, nintcf, nextci, nextcf, &glob_lcc,
                                     &glob_bs, &glob_be, &glob_bn, &glob_bw,
                                     &glob_bl, &glob_bh, &glob_bp,
                                     &glob_cgup,
@@ -355,13 +460,19 @@ int initialization(char* file_in, char* part_type,
 
     fill_send_recv_arrays(send_count, send_list,
                           recv_count, recv_list,
-                          lcc,
+                          glob_lcc,
                           number_of_elements,
                           ne,
                           local_global_index,
                           epart);
 
-
+    fill_local_lcc(glob_lcc, lcc, 
+                   number_of_elements, 
+                   ne,
+                   recv_count, 
+                   local_global_index, 
+                   global_local_index,
+                   epart);
 
 
     // free(current_indices);
