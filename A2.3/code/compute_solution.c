@@ -30,11 +30,14 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
     /** array storing residuals */
     double *resvec = (double *) calloc(sizeof(double), (nintcf + 1));
 
+
     // initialize the reference residual
     for ( nc = nintci; nc <= nintcf; nc++ ) {
         resvec[nc] = su[nc];
         resref = resref + resvec[nc] * resvec[nc];
     }
+
+    MPI_Allreduce(MPI_IN_PLACE, &resref, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
     resref = sqrt(resref);
     if ( resref < 1.0e-15 ) {
@@ -49,11 +52,17 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
     for ( i = 0; i < neighbors_count; ++i )
         total_recv += recv_count[i];
 
+    // an array of offsets for ghost layers from each neighbou to map lcc correctly 
+    int offsets[neighbours_count];
+    offsets[0] = 1;
+    for ( i = 1; i < neighbours_count; ++i )
+        offsets[i] = offsets[i-1] + (*recv_count)[i];
+
     int all_external_cells = 1;
 
     /** the computation vectors */
-    double *direc1 = (double *) calloc(sizeof(double), (nextcf + 1));
-    double *direc2 = (double *) calloc(sizeof(double), (nextcf + 1));
+    double *direc1 = (double *) calloc(sizeof(double), (nintcf + 1) + total_recv + 1);
+    double *direc2 = (double *) calloc(sizeof(double), (nintcf + 1));
     double *adxor1 = (double *) calloc(sizeof(double), (nintcf + 1));
     double *adxor2 = (double *) calloc(sizeof(double), (nintcf + 1));
     double *dxor1 = (double *) calloc(sizeof(double), (nintcf + 1));
