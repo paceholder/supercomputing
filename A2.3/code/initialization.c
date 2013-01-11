@@ -64,15 +64,21 @@ void fill_local_lcc(int** glob_lcc,
     for ( i = 0; i < neighbours_count; ++i )
         total_recv += (*recv_count)[i];
 
-    /* an array of offsets for each neighbour to map lcc correctly */
+    // an array of offsets for ghost layers from each neighbou to map lcc correctly 
     int offsets[neighbours_count];
     offsets[0] = 1;
     for ( i = 1; i < neighbours_count; ++i )
         offsets[i] = offsets[i-1] + (*recv_count)[i];
 
+    // allocate new array for remapped lcc
     *lcc = (int**) calloc(number_of_elements, sizeof(int*));
 
+    // current position of ghost chell index inside ghost layers pats
+    int offsets_inside_partition[neighbours_count];
+    memset(offsets_inside_partition, 0, neighbours_count * sizeof(int));
+
     for ( i = 0; i < number_of_elements; ++i ) {
+        // memory for one cell of lcc
         (*lcc)[i] = calloc(6, sizeof(int));
 
         // take global index for current local element
@@ -80,37 +86,41 @@ void fill_local_lcc(int** glob_lcc,
     
         int* cells = glob_lcc[gl_index];
 
+        // check cells around
         for ( j = 0; j < 6; ++j ) {
             int old_global_index = cells[j];
+
+            // stored in remapped lcc
             int new_local_index;
 
-            /*        indexing 
+            /*        indexing
              *
              * | inner cells | recv1 | recv2 ... | outer one cell |
              */
 
-            /* outer cell */
+            // outer cell - index larger than total number of inner cells
             if (old_global_index > ne-1)
-                /* very last cell */
+                // very last cell
                 new_local_index = number_of_elements-1 + total_recv + 1;
-            /* inner cells and ghost layer */
+            // inner cells and ghost layer
             else {
-                /* global index points to neighbour 
-                 * that means it is ghost layer 
+                /* 
+                 * global index points to neighbour 
+                 * that means it is a ghost layer 
                  * */
-                if ( (*epart)[old_global_index] != my_rank ) {
-                    // global_local_index
-                }
-                    
-                    
+                int partition = (*epart)[old_global_index];
+                if ( partition != my_rank ) {
+                    /* local number for ghost cell in neighbouring partition */
+                    new_local_index = number_of_elements + offsets[partition] 
+                                                         + offsets_inside_partition[partition];
+                    ++offsets_inside_partition[partition];
 
-                new_local_index = (*global_local_index)[old_global_index];
+                } else
+                    new_local_index = (*global_local_index)[old_global_index];
 
             }
 
-
-//            int neighbouring_cell = (*lcc)[global_index][j];
-  //          int local
+            (*lcc)[i][j] = new_local_index;
         }
     }
 
@@ -193,27 +203,7 @@ void fill_local_arrays(int** local_global_index,
         (*global_local_index)[i] = current_index[partition];
 
         ++current_index[partition];
-
     }
-        
-/*
-    int current_index = 0;
-    for ( i = 0; i < ne; ++i ) {
-        if ( (*epart)[i] == my_rank ) {
-            (*local_global_index)[current_index] = i;
-            (*global_local_index)[i] = current_index;
-
-            (*cgup)[current_index] = glob_cgup[i];
-            (*be)[current_index] = glob_be[i];
-            (*bs)[current_index] = glob_bs[i];
-            (*bw)[current_index] = glob_bw[i];
-            (*bh)[current_index] = glob_bh[i];
-            (*bl)[current_index] = glob_bl[i];
-            (*bp)[current_index] = glob_bp[i];
-
-            ++current_index;
-        }
-    } */
 }
 
 
@@ -345,6 +335,7 @@ void fill_send_recv_arrays(int** send_count, int*** send_list,
             // global index of neighbouring cell
             int neighbouring_cell = lcc[global_index][j];
 
+            // skip indices of outer cells
             if ( neighbouring_cell > ne-1 )
                 continue;
 
