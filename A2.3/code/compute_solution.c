@@ -133,6 +133,7 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
         /********** START COMP PHASE 2 **********/
         // execute normalization steps
         double oc1, oc2, occ;
+        double global_occ;
         if ( nor1 == 1 ) {
             oc1 = 0;
             occ = 0;
@@ -140,6 +141,8 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
             for ( nc = nintci; nc <= nintcf; nc++ ) {
                 occ = occ + adxor1[nc] * direc2[nc];
             }
+
+            MPI_Allreduce(&occ, &global_occ, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
             oc1 = occ / cnorm[1];
             for ( nc = nintci; nc <= nintcf; nc++ ) {
@@ -157,12 +160,16 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
                     occ = occ + adxor1[nc] * direc2[nc];
                 }
 
+                MPI_Allreduce(&occ, &global_occ, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
                 oc1 = occ / cnorm[1];
                 oc2 = 0;
                 occ = 0;
                 for ( nc = nintci; nc <= nintcf; nc++ ) {
                     occ = occ + adxor2[nc] * direc2[nc];
                 }
+
+                MPI_Allreduce(&occ, &global_occ, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
                 oc2 = occ / cnorm[2];
                 for ( nc = nintci; nc <= nintcf; nc++ ) {
@@ -182,6 +189,9 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
             omega = omega + resvec[nc] * direc2[nc];
         }
 
+        MPI_Allreduce(MPI_IN_PLACE, &cnorm[nor], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(MPI_IN_PLACE, &omega, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
         omega = omega / cnorm[nor];
         double res_updated = 0.0;
         for ( nc = nintci; nc <= nintcf; nc++ ) {
@@ -189,6 +199,8 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
             resvec[nc] = resvec[nc] - omega * direc2[nc];
             res_updated = res_updated + resvec[nc] * resvec[nc];
         }
+
+        MPI_Allreduce(MPI_IN_PLACE, &res_updated, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
         res_updated = sqrt(res_updated);
         *residual_ratio = res_updated / resref;
