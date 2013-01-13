@@ -44,8 +44,69 @@ void allocate_memory_for_distributed_arrays(double** var,
 }
 
 
+void calculate_number_of_elements_and_offsets(int** number_of_elements_in_partitions,
+                                              int** partitions_offsets,
+                                              int** recv_count,
+                                              int number_of_elements) {
+    int neighbours_count;
+    int my_rank;
+    int i;
+
+
+    MPI_Comm_size(MPI_COMM_WORLD, &neighbours_count);
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+
+
+    // we should know how many elements are in each partition
+    *number_of_elements_in_partitions = (int*) calloc(neighbours_count, sizeof(int));
+    memset(*number_of_elements_in_partitions, 0, neighbours_count * sizeof(int));
+
+    MPI_Request requests[neighbours_count];
+
+    printf("local LCC\n");
+    printf("myrank %d\n", my_rank);
+    for ( i = 0; i < neighbours_count; ++i ) {
+        // checks whether we communicate with neighbour #i
+        if ((*recv_count)[i] > 0 ) {
+            MPI_Isend(&number_of_elements, 1, MPI_INT, i, 10, MPI_COMM_WORLD, &requests[i]);
+        }
+    }
+
+    for ( i = 0; i < neighbours_count; ++i ) {
+        if ((*recv_count)[i] > 0 ) {
+            // then we receive from the same neighbour
+            MPI_Status status;
+            MPI_Recv(&(*number_of_elements_in_partitions)[i], 1, MPI_INT, i, 10, MPI_COMM_WORLD, &status);
+        }
+    }
+
+    MPI_Status status;
+    for ( i = 0; i < neighbours_count; ++i ) {
+        if ((*recv_count)[i] > 0 ) {
+            MPI_Wait(&requests[i], &status);
+        }
+    }
+
+/*
+    for ( i = 0; i < neighbours_count; ++i ) {
+        printf("rank %d, neighbour %d elements %d\n", my_rank, i, elements_in_partitions[i]);
+    }
+
+    */
+    
+    // an array of offsets for ghost layers from each neighbour to map lcc correctly 
+    *partitions_offsets = (int*) calloc(neighbours_count, sizeof(int));
+    (*partitions_offsets)[0] = 1;
+    for ( i = 1; i < neighbours_count; ++i )
+        (*partitions_offsets)[i] = (*partitions_offsets)[i-1] + (*number_of_elements_in_partitions)[i];
+}
+
+
+
 void fill_local_lcc(int** glob_lcc, 
                     int*** lcc,
+                    int** number_of_elements_in_partitions,
+                    int** partitions_offsets,
                     int number_of_elements,
                     idx_t ne,
                     int** recv_count,
@@ -60,22 +121,18 @@ void fill_local_lcc(int** glob_lcc,
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &neighbours_count);
 
+    // cound additional place for send and receive
     int total_recv = 0;
     for ( i = 0; i < neighbours_count; ++i )
-        total_recv += (*recv_count)[i];
+        total_recv += (*number_of_elements_in_partitions)[i];
 
-    // an array of offsets for ghost layers from each neighbou to map lcc correctly 
-    int offsets[neighbours_count];
-    offsets[0] = 1;
-    for ( i = 1; i < neighbours_count; ++i )
-        offsets[i] = offsets[i-1] + (*recv_count)[i];
 
     // allocate new array for remapped lcc
     *lcc = (int**) calloc(number_of_elements, sizeof(int*));
 
     // current position of ghost chell index inside ghost layers pats
-    int offsets_inside_partition[neighbours_count];
-    memset(offsets_inside_partition, 0, neighbours_count * sizeof(int));
+//    int offsets_inside_partition[neighbours_count];
+//    memset(offsets_inside_partition, 0, neighbours_count * sizeof(int));
 
     for ( i = 0; i < number_of_elements; ++i ) {
         // memory for one cell of lcc
@@ -110,12 +167,11 @@ void fill_local_lcc(int** glob_lcc,
                  * */
                 int partition = (*epart)[old_global_index];
                 if ( partition != my_rank ) {
-                    /* local number for ghost cell in neighbouring partition */
-                    new_local_index = number_of_elements + offsets[partition] 
-                                                         + offsets_inside_partition[partition];
-                    ++offsets_inside_partition[partition];
-
+                    // local number for ghost cell in neighbouring partition 
+                    new_local_index = number_of_elements + (*partitions_offsets)[partition] 
+                                                         + (*global_local_index)[old_global_index];
                 } else
+                    // link to inner cell
                     new_local_index = (*global_local_index)[old_global_index];
 
             }
@@ -124,7 +180,11 @@ void fill_local_lcc(int** glob_lcc,
         }
     }
 
-    
+/*
+    for ( i = 0; i < neighbours_count; ++i ) {
+        printf("rank %d neighbour: %d inner_offset %d\n", my_rank, i, offsets_inside_partition[i]);
+        }
+*/
 }
 
 
@@ -146,8 +206,8 @@ int get_number_of_local_elements(idx_t ne, idx_t** epart) {
 }
 
 void allocate_memory_for_mapping_arrays(int** local_global_index,
-                                        int number_of_local_elements,
                                         int** global_local_index,
+                                        int number_of_local_elements,
                                         int number_of_global_elements) {
     *local_global_index = (int*) calloc(number_of_local_elements, sizeof(int));
     *global_local_index = (int*) calloc(number_of_global_elements, sizeof(int));
@@ -261,7 +321,6 @@ void partitioning(idx_t ne, idx_t nn,
                             &obvl, *epart, *npart);
     } else if (strcmp(part_type, "classical") == 0) {
         int elems_per_node = ne / procs + 1;
-        printf("Elements per node %d\n", elems_per_node);
 
         for ( i = 0; i < ne; ++i ) {
             int p = i / elems_per_node;
@@ -276,10 +335,11 @@ void partitioning(idx_t ne, idx_t nn,
 
 void fill_send_recv_arrays(int** send_count, int*** send_list,
                            int** recv_count, int*** recv_list,
-                           int** lcc,
+                           int** glob_lcc,
                            int number_of_elements,
                            idx_t ne,
                            int** local_global_index,
+                           int** global_local_index,
                            idx_t** epart
                            ) {
     int i; int j;
@@ -301,7 +361,7 @@ void fill_send_recv_arrays(int** send_count, int*** send_list,
         // 6 directions - 6 neighbours
         for ( j = 0; j < 6; ++j ) {
             // global index of neighbouring cell
-            int neighbouring_cell = lcc[global_index][j];
+            int neighbouring_cell = glob_lcc[global_index][j];
 
             if ( neighbouring_cell > ne-1 )
                 continue;
@@ -325,30 +385,36 @@ void fill_send_recv_arrays(int** send_count, int*** send_list,
         (*recv_list)[i] = (int*) calloc((*recv_count)[i], sizeof(int));
     }
 
-    int* current_indices = (int*) calloc(num_procs, sizeof(int));
+    int* curr_indices = (int*) calloc(num_procs, sizeof(int));
     // traverce all local cells in this partition
     for ( i = 0; i < number_of_elements; ++i ) {
         // global index of current cell
-        int global_index = (*local_global_index)[i];
+        //int global_index = (*local_global_index)[i];
+        int send_global_index = (*local_global_index)[i];
     
         for ( j = 0; j < 6; ++j ) {
             // global index of neighbouring cell
-            int neighbouring_cell = lcc[global_index][j];
+            int neighbouring_cell = glob_lcc[send_global_index][j];
 
             // skip indices of outer cells
             if ( neighbouring_cell > ne-1 )
                 continue;
 
-            int partition = (*epart)[neighbouring_cell];
+            int part = (*epart)[neighbouring_cell];
 
             // we must send information
-            if ( partition != my_rank ) {
-                (*send_list)[partition][current_indices[partition]] = global_index;
-                (*recv_list)[partition][current_indices[partition]] = neighbouring_cell;
-                current_indices[partition] += 1;
+            if ( part != my_rank ) {
+                (*send_list)[part][curr_indices[part]] = (*global_local_index)[send_global_index];
+                (*recv_list)[part][curr_indices[part]] = (*global_local_index)[neighbouring_cell];
+                curr_indices[part] += 1;
             }
         }
     }
+
+    free(curr_indices);
+
+//    for ( i = 0; i < num_procs; ++i)
+//        printf("proc %d   neighbour %d   count %d\n", my_rank, i, (*recv_count)[i]);
 }
 
 
@@ -368,7 +434,10 @@ int initialization(char* file_in, char* part_type,
                    int*** points, int** elems, 
                    double** var, double** cgup, double** oc, double** cnorm, 
                    int** local_global_index, int** global_local_index,
-                   int* neighbors_count, 
+
+                   int* number_of_elements,
+                   int** number_of_elements_in_partitions,
+                   int** partitions_offsets,
                    int** send_count, int*** send_list, 
                    int** recv_count, int*** recv_list, 
                    idx_t** epart, idx_t** npart, 
@@ -382,7 +451,7 @@ int initialization(char* file_in, char* part_type,
     int my_rank;
     idx_t ne;
     idx_t nn;
-    int number_of_elements = 0;
+    *number_of_elements = 0;
 
     double* glob_bs;
     double* glob_be;
@@ -423,7 +492,7 @@ int initialization(char* file_in, char* part_type,
                  epart, npart);
 
 
-    number_of_elements = get_number_of_local_elements(ne, epart);
+    *number_of_elements = get_number_of_local_elements(ne, epart);
 
 
     allocate_memory_for_distributed_arrays(var,
@@ -434,10 +503,12 @@ int initialization(char* file_in, char* part_type,
                                            bs, bw,
                                            bh, bl,
                                            bp,
-                                           number_of_elements);
+                                           *number_of_elements);
 
-    allocate_memory_for_mapping_arrays(local_global_index, number_of_elements,
-                                       global_local_index, ne);
+    allocate_memory_for_mapping_arrays(local_global_index, 
+                                       global_local_index, 
+                                       *number_of_elements,
+                                       ne);
 
 
     fill_local_arrays(local_global_index, global_local_index,
@@ -452,13 +523,20 @@ int initialization(char* file_in, char* part_type,
     fill_send_recv_arrays(send_count, send_list,
                           recv_count, recv_list,
                           glob_lcc,
-                          number_of_elements,
+                          *number_of_elements,
                           ne,
                           local_global_index,
+                          global_local_index,
                           epart);
 
+    calculate_number_of_elements_and_offsets(number_of_elements_in_partitions,
+                                             partitions_offsets,
+                                             recv_count,
+                                             *number_of_elements);
     fill_local_lcc(glob_lcc, lcc, 
-                   number_of_elements, 
+                   number_of_elements_in_partitions,
+                   partitions_offsets,
+                   *number_of_elements, 
                    ne,
                    recv_count, 
                    local_global_index, 
@@ -480,7 +558,7 @@ int initialization(char* file_in, char* part_type,
     free(glob_bp);
 
     *nintci = 0;
-    *nintcf = number_of_elements -1;
+    *nintcf = *number_of_elements -1;
 
     return 0;
 }

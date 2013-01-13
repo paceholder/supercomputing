@@ -53,7 +53,7 @@ int read_binary_geo(char *file_name,
     fread(NEXTCF, sizeof(int), 1, fp);
 
 
-    printf("Indicies %d %d %d %d\n", *NINTCI, *NINTCF, *NEXTCI, *NEXTCF);
+    // printf("Indicies %d %d %d %d\n", *NINTCI, *NINTCF, *NEXTCI, *NEXTCF);
 
     // allocating LCC
     if ( (*LCC = (int**) malloc((*NINTCF + 1) * sizeof(int*))) == NULL ) {

@@ -16,9 +16,16 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
                    int* nextcf, int*** lcc, double** bs, double** be, double** bn, double** bw,
                    double** bl, double** bh, double** bp, double** su, int* points_count,
                    int*** points, int** elems, double** var, double** cgup, double** oc,
-                   double** cnorm, int** local_global_index, int** global_local_index,
-                   int* neighbors_count, int** send_count, int*** send_list, int** recv_count,
-                   int*** recv_list, idx_t** epart, idx_t** npart, int* objval);
+                   double** cnorm, 
+                   int** local_global_index, int** global_local_index,
+
+                   int* number_of_elements,
+                   int** number_of_elements_in_partitions,
+                   int** partitions_offsets,
+                   int** send_count, int*** send_list, 
+                   int** recv_count, int*** recv_list, 
+                   idx_t** epart, idx_t** npart, 
+                   int* objval);
 
 #endif /* INITIALIZATION_H_ */
 

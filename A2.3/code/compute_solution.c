@@ -9,17 +9,25 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "mpi.h"
+
 int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, int** lcc, double* bp,
                      double* bs, double* bw, double* bl, double* bn, double* be, double* bh,
                      double* cnorm, double* var, double *su, double* cgup, double* residual_ratio,
-                     int* local_global_index, int* global_local_index, int neighbors_count,
-                     int* send_count, int** send_list, int* recv_count, int** recv_list) {
+                     int* local_global_index, int* global_local_index, 
+                     int number_of_elements,
+                     int* number_of_elements_in_partitions,
+                     int* partitions_offsets,
+                     int* send_count, int** send_list, 
+                     int* recv_count, int** recv_list) {
     int iter = 1;
     int if1 = 0;
     int if2 = 0;
     int nor = 1;
     int nor1 = nor - 1;
     int nc = 0;
+
+    int i;
 
     // allocate arrays used in gccg
     int nomax = 3;
@@ -45,20 +53,13 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
         return 0;
     }
 
+    int neighbours_count;
+    MPI_Comm_size(MPI_COMM_WORLD, &neighbours_count);    /// get number of processes
+
     /* how many cells do we receive */
-
     int total_recv = 0;
-    int i;
-    for ( i = 0; i < neighbors_count; ++i )
-        total_recv += recv_count[i];
-
-    // an array of offsets for ghost layers from each neighbou to map lcc correctly 
-    int offsets[neighbours_count];
-    offsets[0] = 1;
-    for ( i = 1; i < neighbours_count; ++i )
-        offsets[i] = offsets[i-1] + (*recv_count)[i];
-
-    int all_external_cells = 1;
+    for ( i = 0; i < neighbours_count; ++i )
+        total_recv += number_of_elements_in_partitions[i];
 
     /** the computation vectors */
     double *direc1 = (double *) calloc(sizeof(double), (nintcf + 1) + total_recv + 1);
@@ -68,11 +69,53 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
     double *dxor1 = (double *) calloc(sizeof(double), (nintcf + 1));
     double *dxor2 = (double *) calloc(sizeof(double), (nintcf + 1));
 
+    MPI_Datatype send_datatypes[neighbours_count];
+
+    for ( i = 0; i <  neighbours_count; ++i ) {
+        int* b = (int*) calloc(send_count[i], sizeof(int));
+        memset(b, 1, sizeof(int));
+        MPI_Type_indexed(send_count[i], b, send_list[i], MPI_INT, &send_datatypes[i]);
+        free(b);
+    }
+
+    MPI_Datatype recv_datatypes[neighbours_count];
+
+    for ( i = 0; i <  neighbours_count; ++i ) {
+        int* b = (int*) calloc(recv_count[i], sizeof(int));
+        memset(b, 1, sizeof(int));
+        MPI_Type_indexed(recv_count[i], b, recv_list[i], MPI_INT, &recv_datatypes[i]);
+        free(b);
+    }
+
+    MPI_Request requests[neighbours_count];
+    MPI_Status  statuses[neighbours_count];
+
     while ( iter < max_iters ) {
         /**********  START COMP PHASE 1 **********/
         // update the old values of direc
         for ( nc = nintci; nc <= nintcf; nc++ ) {
             direc1[nc] = direc1[nc] + resvec[nc] * cgup[nc];
+        }
+
+
+        for ( i = 0; i <  neighbours_count; ++i ) {
+            if ( send_count[i] == 0 )
+                continue;
+            MPI_Isend(direc1, 1, send_datatypes[i], i, 10, MPI_COMM_WORLD, &requests[i]);
+        }
+
+        for ( i = 0; i <  neighbours_count; ++i ) {
+            if ( send_count[i] == 0 )
+                continue;
+            MPI_Recv(direc1 + number_of_elements + (partitions_offsets[i]), 
+                     1, recv_datatypes[i], i, 10, MPI_COMM_WORLD, &statuses[i]);
+        }
+
+
+        for ( i = 0; i <  neighbours_count; ++i ) {
+            if ( send_count[i] == 0 )
+                continue;
+            MPI_Wait(&requests[i], &statuses[i]);
         }
 
         // compute new guess (approximation) for direc

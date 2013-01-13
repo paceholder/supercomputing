@@ -47,7 +47,6 @@ int main(int argc, char *argv[]) {
     int* global_local_index;    /// global to local index mapping
 
     /** Lists of cells requires for the communication */
-    int neighbors_count = 0;    /// total number of neighbors to communicate with
     int* send_count;    /// number of elements to send to each neighbor (size: neighbors_count)
     /// send lists for the other neighbors(cell ids which should be sent)(size:[#neighbors][#cells]
     int** send_list;
@@ -58,6 +57,10 @@ int main(int argc, char *argv[]) {
     idx_t* epart;     /// partition vector for the elements of the mesh
     idx_t* npart;     /// partition vector for the points (nodes) of the mesh
     int objval;    /// resulting edgecut of total communication volume (classical distrib->zeros)
+
+    int number_of_elements; // number of elements in current partition
+    int *number_of_elements_in_partitions; // number of elements in all communicating partitions
+    int *partitions_offsets; // offsets for direc1 vector
 
     MPI_Init(&argc, &argv);    /// Start MPI
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
@@ -76,9 +79,18 @@ int main(int argc, char *argv[]) {
 
     int init_status = initialization(file_in, part_type, &nintci, &nintcf, &nextci, &nextcf, &lcc,
                                      &bs, &be, &bn, &bw, &bl, &bh, &bp, &su, &points_count, &points,
-                                     &elems, &var, &cgup, &oc, &cnorm, &local_global_index,
-                                     &global_local_index, &neighbors_count, &send_count, &send_list,
-                                     &recv_count, &recv_list, &epart, &npart, &objval);
+                                     &elems, &var, &cgup, &oc, &cnorm, 
+                                     &local_global_index,
+                                     &global_local_index, 
+
+                                     &number_of_elements,
+                                     &number_of_elements_in_partitions,
+                                     &partitions_offsets,
+
+                                     &send_count, &send_list,
+                                     &recv_count, &recv_list, 
+                                     &epart, &npart, 
+                                     &objval);
     if ( init_status != 0 ) {
         fprintf(stderr, "Failed to initialize data!\n");
         MPI_Abort(MPI_COMM_WORLD, my_rank);
@@ -95,17 +107,28 @@ int main(int argc, char *argv[]) {
         test_distribution(file_in, file_vtk_out, local_global_index, nintcf, cgup);
 
         test_communication(file_in, file_vtk_out, local_global_index, nintcf,
-                            neighbors_count, send_count, send_list, recv_count, recv_list);
+                           send_count, send_list, 
+                           recv_count, recv_list);
     }
 
     /********** END INITIALIZATION **********/
+
+
+
     /********** START COMPUTATIONAL LOOP **********/
-    // int total_iters = compute_solution(max_iters, nintci, nintcf, nextcf, lcc, bp, bs, bw, bl,
-    // bn,
-    //                                 be, bh, cnorm, var, su, cgup, &residual_ratio,
-    //                               local_global_index, global_local_index, neighbors_count,
-    //                             send_count, send_list, recv_count, recv_list);
+    int total_iters = compute_solution(max_iters, nintci, nintcf, nextcf, lcc, 
+                                       bp, bs, bw, bl, bn, be, bh, 
+                                       cnorm, var, su, cgup, &residual_ratio,
+                                       local_global_index, global_local_index, 
+
+                                       number_of_elements,
+                                       number_of_elements_in_partitions,
+                                       partitions_offsets,
+
+                                       send_count, send_list, 
+                                       recv_count, recv_list);
     /********** END COMPUTATIONAL LOOP **********/
+
     /********** START FINALIZATION **********/
     // finalization(file_in, out_prefix, total_iters, residual_ratio, nintci, nintcf, points_count,
     //     points, elems, var, cgup, su);
