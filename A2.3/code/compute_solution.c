@@ -53,13 +53,20 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
         return 0;
     }
 
+    printf("nintct %d\n", nintcf);
+    printf("RESREF %f\n", resref);
+
+    int my_rank;
     int neighbours_count;
     MPI_Comm_size(MPI_COMM_WORLD, &neighbours_count);    /// get number of processes
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
     /* how many cells do we receive */
     int total_recv = 0;
     for ( i = 0; i < neighbours_count; ++i )
         total_recv += number_of_elements_in_partitions[i];
+
+    printf("TOTAL ELEM %d\n", total_recv);
 
     /** the computation vectors */
     double *direc1 = (double *) calloc(sizeof(double), (nintcf + 1) + total_recv + 1);
@@ -72,18 +79,27 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
     MPI_Datatype send_datatypes[neighbours_count];
 
     for ( i = 0; i <  neighbours_count; ++i ) {
+        int j;
         int* b = (int*) calloc(send_count[i], sizeof(int));
-        memset(b, 1, sizeof(int));
-        MPI_Type_indexed(send_count[i], b, send_list[i], MPI_INT, &send_datatypes[i]);
+        for ( j = 0; j < send_count[i]; ++j )
+            b[j] = 1;
+
+        MPI_Type_indexed(send_count[i], b, send_list[i], MPI_DOUBLE, &send_datatypes[i]);
+        MPI_Type_commit(&send_datatypes[i]);
         free(b);
     }
 
     MPI_Datatype recv_datatypes[neighbours_count];
 
     for ( i = 0; i <  neighbours_count; ++i ) {
+        int j;
         int* b = (int*) calloc(recv_count[i], sizeof(int));
-        memset(b, 1, sizeof(int));
-        MPI_Type_indexed(recv_count[i], b, recv_list[i], MPI_INT, &recv_datatypes[i]);
+        for ( j = 0; j < recv_count[i]; ++j )
+            b[j] = 1;
+
+        // printf("%d %d %d %d %d\n", b[0], b[1], b[2], b[3], b[4]);
+        MPI_Type_indexed(recv_count[i], b, recv_list[i], MPI_DOUBLE, &recv_datatypes[i]);
+        MPI_Type_commit(&recv_datatypes[i]);
         free(b);
     }
 
@@ -99,23 +115,54 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
 
 
         for ( i = 0; i <  neighbours_count; ++i ) {
-            if ( send_count[i] == 0 )
-                continue;
-            MPI_Isend(direc1, 1, send_datatypes[i], i, 10, MPI_COMM_WORLD, &requests[i]);
+            if ( recv_count[i] > 0 ) {
+                MPI_Isend(direc1, 1, send_datatypes[i], i, 10, MPI_COMM_WORLD, &requests[i]);
+
+   //             if (my_rank == 0)
+     //               printf("r %d  DIREC1[0] = %f\n", my_rank, direc1[send_list[i][0]]);
+                
+                /*
+                if (my_rank == 0 ) {
+                    int j;
+
+                    for ( j = 0; j < send_count[1]; ++j )
+                        printf("%f  ", direc1[send_list[1][j]]);
+
+                    printf("\n");
+
+                }
+
+                */
+            }
         }
 
         for ( i = 0; i <  neighbours_count; ++i ) {
-            if ( send_count[i] == 0 )
-                continue;
-            MPI_Recv(direc1 + number_of_elements + (partitions_offsets[i]), 
-                     1, recv_datatypes[i], i, 10, MPI_COMM_WORLD, &statuses[i]);
+            if ( recv_count[i] > 0 ) {
+//                printf("OFFSET %d\n", number_of_elements + partitions_offsets[i]);
+                MPI_Recv(&direc1[number_of_elements + partitions_offsets[i]], 
+                         1, recv_datatypes[i], i, 10, MPI_COMM_WORLD, &statuses[i]);
+
+       //         if (my_rank == 1)
+         //           printf("r %d, rcvDIREC1[0] = %f\n", my_rank,  direc1[number_of_elements-1 + partitions_offsets[i] + send_list[i][0]]);
+           /*
+                if (my_rank == 1 ) {
+                    int j;
+
+                    for ( j = 0; j < recv_count[0]; ++j )
+                        printf("..%f  ", direc1[number_of_elements + recv_list[0][j]]);
+
+                    printf("\n");
+
+                }
+
+                */
+            }
         }
 
 
         for ( i = 0; i <  neighbours_count; ++i ) {
-            if ( send_count[i] == 0 )
-                continue;
-            MPI_Wait(&requests[i], &statuses[i]);
+            if ( recv_count[i] > 0 )
+                MPI_Wait(&requests[i], &statuses[i]);
         }
 
         // compute new guess (approximation) for direc
@@ -129,6 +176,7 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
                          - bh[nc] * direc1[lcc[nc][5]];
         }
         /********** END COMP PHASE 1 **********/
+
 
         /********** START COMP PHASE 2 **********/
         // execute normalization steps
@@ -144,7 +192,7 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
 
             MPI_Allreduce(&occ, &global_occ, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-            oc1 = occ / cnorm[1];
+            oc1 = global_occ / cnorm[1];
             for ( nc = nintci; nc <= nintcf; nc++ ) {
                 direc2[nc] = direc2[nc] - oc1 * adxor1[nc];
                 direc1[nc] = direc1[nc] - oc1 * dxor1[nc];
@@ -162,7 +210,7 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
 
                 MPI_Allreduce(&occ, &global_occ, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-                oc1 = occ / cnorm[1];
+                oc1 = global_occ / cnorm[1];
                 oc2 = 0;
                 occ = 0;
                 for ( nc = nintci; nc <= nintcf; nc++ ) {
@@ -171,7 +219,7 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
 
                 MPI_Allreduce(&occ, &global_occ, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-                oc2 = occ / cnorm[2];
+                oc2 = global_occ / cnorm[2];
                 for ( nc = nintci; nc <= nintcf; nc++ ) {
                     direc2[nc] = direc2[nc] - oc1 * adxor1[nc] - oc2 * adxor2[nc];
                     direc1[nc] = direc1[nc] - oc1 * dxor1[nc] - oc2 * dxor2[nc];
@@ -188,9 +236,10 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
             cnorm[nor] = cnorm[nor] + direc2[nc] * direc2[nc];
             omega = omega + resvec[nc] * direc2[nc];
         }
-
-        MPI_Allreduce(MPI_IN_PLACE, &cnorm[nor], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        
+        MPI_Allreduce(MPI_IN_PLACE, &cnorm[nor], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
         MPI_Allreduce(MPI_IN_PLACE, &omega, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
 
         omega = omega / cnorm[nor];
         double res_updated = 0.0;
@@ -199,10 +248,14 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
             resvec[nc] = resvec[nc] - omega * direc2[nc];
             res_updated = res_updated + resvec[nc] * resvec[nc];
         }
+        
 
-        MPI_Allreduce(MPI_IN_PLACE, &res_updated, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(MPI_IN_PLACE, &res_updated, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
         res_updated = sqrt(res_updated);
+
+        printf("ITERATION: %d  RESID %e\n", iter, res_updated);
+
         *residual_ratio = res_updated / resref;
 
         // exit on no improvements of residual

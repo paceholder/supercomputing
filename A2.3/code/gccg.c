@@ -129,15 +129,20 @@ int main(int argc, char *argv[]) {
                                        recv_count, recv_list);
     /********** END COMPUTATIONAL LOOP **********/
 
+    printf("AFTER COMPUTE SOLUTION\n");
+
     /********** START FINALIZATION **********/
-    // finalization(file_in, out_prefix, total_iters, residual_ratio, nintci, nintcf, points_count,
-    //     points, elems, var, cgup, su);
+    finalization(file_in, out_prefix, total_iters, residual_ratio, nintci, nintcf, points_count,
+                 points, elems, var, cgup, su);
+
     /********** END FINALIZATION **********/
-    // free(cnorm);
-    // free(oc);
-    // free(var);
+
+
+    free(cnorm);
+    free(oc);
+    free(var);
     free(cgup);
-    // free(su);
+    free(su);
     free(bp);
     free(bh);
     free(bl);
@@ -145,9 +150,9 @@ int main(int argc, char *argv[]) {
     free(bn);
     free(be);
     free(bs);
-    // free(elems);
+    free(elems);
 
-    /*
+    
     int i;
     for(i = 0; i < nintcf + 1; i++) {
         free(lcc[i]);
@@ -158,7 +163,7 @@ int main(int argc, char *argv[]) {
         free(points[i]);
     }
     free(points);
-    */
+    
 
     MPI_Finalize();    /// Cleanup MPI
 

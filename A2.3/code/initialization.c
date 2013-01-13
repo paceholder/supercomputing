@@ -33,6 +33,10 @@ void allocate_memory_for_distributed_arrays(double** var,
     *cgup = (double*) calloc(array_size, sizeof(double));
     *oc = (double*) calloc(array_size, sizeof(double));
     *cnorm = (double*) calloc(array_size, sizeof(double));
+    
+    int i;
+    for ( i = 0; i <= 10; ++i ) 
+        (*cnorm)[i] = 1.0;
 
     *bn = (double*) calloc(array_size, sizeof(double));
     *be = (double*) calloc(array_size, sizeof(double));
@@ -87,18 +91,26 @@ void calculate_number_of_elements_and_offsets(int** number_of_elements_in_partit
         }
     }
 
-/*
+
     for ( i = 0; i < neighbours_count; ++i ) {
-        printf("rank %d, neighbour %d elements %d\n", my_rank, i, elements_in_partitions[i]);
+        printf("rank %d, neighbour %d elements %d\n", my_rank, i, (*number_of_elements_in_partitions)[i]);
     }
 
-    */
-    
+
     // an array of offsets for ghost layers from each neighbour to map lcc correctly 
     *partitions_offsets = (int*) calloc(neighbours_count, sizeof(int));
-    (*partitions_offsets)[0] = 1;
-    for ( i = 1; i < neighbours_count; ++i )
-        (*partitions_offsets)[i] = (*partitions_offsets)[i-1] + (*number_of_elements_in_partitions)[i];
+
+    for ( i = 1; i < neighbours_count; ++i ) {
+        int os = 0;
+        if ((*recv_count)[i] > 0 )
+            os = (*number_of_elements_in_partitions)[i-1];
+        (*partitions_offsets)[i] = (*partitions_offsets)[i-1] + os;
+    }
+/*
+    for ( i = 0; i < neighbours_count; ++i ) {
+        printf("rank %d   partition %d offset %d\n", my_rank, i, (*partitions_offsets)[i]);
+    }
+    */
 }
 
 
@@ -158,7 +170,7 @@ void fill_local_lcc(int** glob_lcc,
             // outer cell - index larger than total number of inner cells
             if (old_global_index > ne-1)
                 // very last cell
-                new_local_index = number_of_elements-1 + total_recv + 1;
+                new_local_index = (number_of_elements + total_recv + 1) - 1;
             // inner cells and ghost layer
             else {
                 /* 
@@ -242,8 +254,7 @@ void fill_local_arrays(int** local_global_index,
     MPI_Comm_size(MPI_COMM_WORLD, &neighbours_count);    /// get number of processes
 
     int current_index[neighbours_count];
-    for ( i = 0; i < neighbours_count; ++i )
-        current_index[i] = 0;
+    memset(current_index, 0, neighbours_count * sizeof(int));
 
     for ( i = 0; i < ne; ++i ) {
         int partition = (*epart)[i];
@@ -391,6 +402,9 @@ void fill_send_recv_arrays(int** send_count, int*** send_list,
         // global index of current cell
         //int global_index = (*local_global_index)[i];
         int send_global_index = (*local_global_index)[i];
+
+        if (i != (*global_local_index)[send_global_index])
+            printf("OLOLOLOLOLOLOLO!\n");
     
         for ( j = 0; j < 6; ++j ) {
             // global index of neighbouring cell
