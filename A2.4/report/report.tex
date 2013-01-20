@@ -1,0 +1,73 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage{a4wide}
+\usepackage{graphicx}
+\usepackage[usenames,dvipsnames]{color}
+
+\title{----------------------------------------------------------- \\
+        {\bf Programming of Supercomputers WS11/12}\\ 
+        ----------------------------------------------------------- \\ 
+        Final report}
+\author{Hans Mustermann}
+\date{ }
+
+\newcommand{\tab}{\hspace{10mm}}
+\newcommand{\draft}[1]{\textcolor{NavyBlue}{#1}}
+\newcommand{\hint}[1]{\textcolor{OliveGreen}{{\it#1}}}
+         
+\begin{document}
+  \maketitle
+
+\hint{General information for you
+\begin{itemize}
+	\item the report should be between 8 and 12 pages long
+	\item it is the means to present and explain your work. The reader should receive a complete image of the solution you propose: both algorithms and  (relevant) implementation details.
+	\item this is a LaTeX template, but you can choose to work in any editing tool you like. The report has to be submitted in pdf format.
+	\item besides the points mentioned below, you are free to add any other ones which you might find relevant for your solution.
+\end{itemize}}
+
+\section{Introduction}
+\draft{Short overview of the project}
+
+\section{Sequential optimization}
+\draft{Analysis of the measurements carried out for the first assignment. Include observations about the metrics variations for different input size as well as for different run phases of the same input.}
+
+\hint{Only include one or two tables and diagrams to support your statements. You do not need to include all the data you provided in the lab report, but analyze it and pick up the most relevant one.}
+
+\section{Benchmark parallelization}
+\draft{Following the milestones, present your solution for parallelizing this benchmark.
+\begin{itemize}
+	\item data distribution
+	\begin{itemize}
+		\item which initialization method you chose? why?
+		\item how did you implement the data distribution?
+		\item how did you avoid code replication when working with both metis and classical distribution?
+	\end{itemize}
+	\item communication model
+	\begin{itemize}
+		\item index mapping: how and what for?
+		\item ghost cells and communication lists
+	\end{itemize}
+	\item MPI implementation
+\end{itemize}
+}
+\hint{\begin{itemize}
+	\item you can refer to source code in your implementation (provide file name and line number).
+	\item you can provide pseudo-code for your algorithms, if you find it necessary.
+\end{itemize}}
+
+\section{Performance analysis and tuning}
+\draft{
+Present the scalability analysis of your code. Include relevant screenshots and diagrams/tables.}
+
+\draft{
+Mention any bottleneck identified in your code, whether it can be overcome and the new performance values achieved after optimizing your implementation (if that was possible).
+}
+
+\section{Overview}
+\draft{
+General conclusions regarding the implemented solution and other comments.
+}
+
+
+\end{document}
+
