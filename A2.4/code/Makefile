@@ -4,20 +4,21 @@
 #                                                                  #
 ####################################################################
 
-CC = mpicc
+CC = scorep --user --mpi mpicc
 CFLAGS = -Wall -O3 
-LIBS = -lm
 
-# LIBPOS=libpos.a
-# AR = ar
-# ARFLAGS = rv
+SRCS = initialization.c compute_solution.c \
+       finalization.c util_read_files.c \
+       util_write_files.c test_functions.c gccg.c
+OBJS = $(SRCS:%.c=%.o)
 
-SRCS = initialization.c compute_solution.c finalization.c util_read_files.c util_write_files.c test_functions.c gccg.c
+all: gccg
 
-all: gccg 
+%.o:%.c
+	$(CC) $(CFLAGS) $(METIS_INC) $< -c -o $@
 
-gccg: $(SRCS)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS) $(METIS_LIB) $(METIS_INC)
+gccg: $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $(OBJS) $(METIS_LIB) 
 
 clean:
 	rm -rf *.o gccg
