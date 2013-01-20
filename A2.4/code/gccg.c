@@ -8,7 +8,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+
 #include "mpi.h"
+#include <scorep/SCOREP_User.h>
 
 #include "initialization.h"
 #include "compute_solution.h"
@@ -77,6 +79,9 @@ int main(int argc, char *argv[]) {
 
     /********** START INITIALIZATION **********/
 
+    SCOREP_USER_REGION_DEFINE( init )
+    SCOREP_USER_REGION_BEGIN( init, "init", SCOREP_USER_REGION_TYPE_PHASE )
+
     int init_status = initialization(file_in, part_type, &nintci, &nintcf, &nextci, &nextcf, &lcc,
                                      &bs, &be, &bn, &bw, &bl, &bh, &bp, &su, &points_count, &points,
                                      &elems, &var, &cgup, &oc, &cnorm, 
@@ -96,7 +101,8 @@ int main(int argc, char *argv[]) {
         MPI_Abort(MPI_COMM_WORLD, my_rank);
     }
 
-/*
+
+    #ifdef DEBUG_OUTPUT
     if ( my_rank == 2 ) {
         char file_vtk_out[1000];
         file_vtk_out[0] = '\0';
@@ -111,12 +117,17 @@ int main(int argc, char *argv[]) {
                            send_count, send_list, 
                            recv_count, recv_list);
     }
-*/
+    #endif
+
     /********** END INITIALIZATION **********/
 
 
 
     /********** START COMPUTATIONAL LOOP **********/
+
+    SCOREP_USER_REGION_DEFINE( compute )
+    SCOREP_USER_REGION_BEGIN( compute, "compute", SCOREP_USER_REGION_TYPE_PHASE )
+    
     int total_iters = compute_solution(max_iters, nintci, nintcf, nextcf, lcc, 
                                        bp, bs, bw, bl, bn, be, bh, 
                                        cnorm, var, su, cgup, &residual_ratio,
@@ -128,13 +139,25 @@ int main(int argc, char *argv[]) {
 
                                        send_count, send_list, 
                                        recv_count, recv_list);
+
+
+    SCOREP_USER_REGION_END( compute )
+
     /********** END COMPUTATIONAL LOOP **********/
 
     printf("AFTER COMPUTE SOLUTION\n");
 
+
+
     /********** START FINALIZATION **********/
+
+    SCOREP_USER_REGION_DEFINE( final )
+    SCOREP_USER_REGION_BEGIN( final, "final", SCOREP_USER_REGION_TYPE_PHASE )
+    
     finalization(file_in, out_prefix, total_iters, residual_ratio, nintci, nintcf, points_count,
                  points, elems, var, cgup, su);
+
+    SCOREP_USER_REGION_END( final )
 
     /********** END FINALIZATION **********/
 

@@ -4,7 +4,7 @@
 #                                                                  #
 ####################################################################
 
-CC = scorep --user --mpi mpicc
+CC = scorep --user mpicc
 CFLAGS = -Wall -O3 
 
 SRCS = initialization.c compute_solution.c \
@@ -15,10 +15,10 @@ OBJS = $(SRCS:%.c=%.o)
 all: gccg
 
 %.o:%.c
-	$(CC) $(CFLAGS) $(METIS_INC) $< -c -o $@
+	$(CC) $(CFLAGS) $(METIS_INC) -I$(SCOREP_INC) $< -c $@
 
 gccg: $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $(OBJS) $(METIS_LIB) 
+	$(CC) $(CFLAGS) -o $@ $(OBJS) $(METIS_LIB)
 
 clean:
 	rm -rf *.o gccg
