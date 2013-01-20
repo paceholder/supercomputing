@@ -4,8 +4,8 @@
 #                                                                  #
 ####################################################################
 
-CC = mpiicc
-CFLAGS = -Wall -g -O0 
+CC = mpicc
+CFLAGS = -Wall -O3 
 LIBS = -lm
 
 # LIBPOS=libpos.a

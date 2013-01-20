@@ -96,6 +96,7 @@ int main(int argc, char *argv[]) {
         MPI_Abort(MPI_COMM_WORLD, my_rank);
     }
 
+/*
     if ( my_rank == 2 ) {
         char file_vtk_out[1000];
         file_vtk_out[0] = '\0';
@@ -110,7 +111,7 @@ int main(int argc, char *argv[]) {
                            send_count, send_list, 
                            recv_count, recv_list);
     }
-
+*/
     /********** END INITIALIZATION **********/
 
 
