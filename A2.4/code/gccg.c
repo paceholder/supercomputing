@@ -10,7 +10,10 @@
 #include <math.h>
 
 #include "mpi.h"
-#include <scorep/SCOREP_User.h>
+
+#ifdef INSTRUMENTED
+    #include <scorep/SCOREP_User.h>
+#endif
 
 #include "initialization.h"
 #include "compute_solution.h"
@@ -30,14 +33,17 @@ int main(int argc, char *argv[]) {
     int **lcc;    /// link cell-to-cell array - stores neighboring information
     /// Boundary coefficients for each volume cell (South, East, North, West, High, Low)
     double *bs, *be, *bn, *bw, *bl, *bh;
+
     double *bp;    /// Pole coefficient
     double *su;    /// Source values
 
-    double residual_ratio;    /// the ratio between the reference and the current residual
     double *var;    /// the variation vector -> keeps the result in the end
 
     /** Additional vectors required for the computation */
     double *cgup, *oc, *cnorm;
+
+    double residual_ratio;    /// the ratio between the reference and the current residual
+
 
     /** Geometry data */
     int points_count;    /// total number of points that define the geometry
@@ -79,8 +85,10 @@ int main(int argc, char *argv[]) {
 
     /********** START INITIALIZATION **********/
 
+#ifdef INSTRUMENTED
     SCOREP_USER_REGION_DEFINE( init )
     SCOREP_USER_REGION_BEGIN( init, "init", SCOREP_USER_REGION_TYPE_PHASE )
+#endif
 
     int init_status = initialization(file_in, part_type, &nintci, &nintcf, &nextci, &nextcf, &lcc,
                                      &bs, &be, &bn, &bw, &bl, &bh, &bp, &su, &points_count, &points,
@@ -125,9 +133,12 @@ int main(int argc, char *argv[]) {
 
     /********** START COMPUTATIONAL LOOP **********/
 
+
+#ifdef INSTRUMENTED
     SCOREP_USER_REGION_DEFINE( compute )
     SCOREP_USER_REGION_BEGIN( compute, "compute", SCOREP_USER_REGION_TYPE_PHASE )
-    
+#endif
+
     int total_iters = compute_solution(max_iters, nintci, nintcf, nextcf, lcc, 
                                        bp, bs, bw, bl, bn, be, bh, 
                                        cnorm, var, su, cgup, &residual_ratio,
@@ -141,7 +152,9 @@ int main(int argc, char *argv[]) {
                                        recv_count, recv_list);
 
 
+#ifdef INSTRUMENTED
     SCOREP_USER_REGION_END( compute )
+#endif
 
     /********** END COMPUTATIONAL LOOP **********/
 
@@ -151,13 +164,18 @@ int main(int argc, char *argv[]) {
 
     /********** START FINALIZATION **********/
 
+
+#ifdef INSTRUMENTED
     SCOREP_USER_REGION_DEFINE( final )
     SCOREP_USER_REGION_BEGIN( final, "final", SCOREP_USER_REGION_TYPE_PHASE )
-    
+#endif
+
     finalization(file_in, out_prefix, total_iters, residual_ratio, nintci, nintcf, points_count,
                  points, elems, var, cgup, su);
 
+#ifdef INSTRUMENTED
     SCOREP_USER_REGION_END( final )
+#endif
 
     /********** END FINALIZATION **********/
 

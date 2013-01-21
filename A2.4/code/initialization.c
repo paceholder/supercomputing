@@ -487,8 +487,8 @@ int initialization(char* file_in, char* part_type,
                                     &glob_bs, &glob_be, &glob_bn, &glob_bw,
                                     &glob_bl, &glob_bh, &glob_bp,
                                     &glob_cgup,
-                                    &*su, &*points_count,
-                                    &*points, elems);
+                                    su, points_count,
+                                    points, elems);
 
 
     if ( f_status != 0 ) return f_status;
