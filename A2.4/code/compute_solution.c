@@ -117,45 +117,13 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
         for ( i = 0; i <  neighbours_count; ++i ) {
             if ( recv_count[i] > 0 ) {
                 MPI_Isend(direc1, 1, send_datatypes[i], i, 10, MPI_COMM_WORLD, &requests[i]);
-
-   //             if (my_rank == 0)
-     //               printf("r %d  DIREC1[0] = %f\n", my_rank, direc1[send_list[i][0]]);
-                
-                /*
-                if (my_rank == 0 ) {
-                    int j;
-
-                    for ( j = 0; j < send_count[1]; ++j )
-                        printf("%f  ", direc1[send_list[1][j]]);
-
-                    printf("\n");
-
-                }
-
-                */
             }
         }
 
         for ( i = 0; i <  neighbours_count; ++i ) {
             if ( recv_count[i] > 0 ) {
-//                printf("OFFSET %d\n", number_of_elements + partitions_offsets[i]);
                 MPI_Recv(&direc1[number_of_elements + partitions_offsets[i]], 
                          1, recv_datatypes[i], i, 10, MPI_COMM_WORLD, &statuses[i]);
-
-       //         if (my_rank == 1)
-         //           printf("r %d, rcvDIREC1[0] = %f\n", my_rank,  direc1[number_of_elements-1 + partitions_offsets[i] + send_list[i][0]]);
-           /*
-                if (my_rank == 1 ) {
-                    int j;
-
-                    for ( j = 0; j < recv_count[0]; ++j )
-                        printf("..%f  ", direc1[number_of_elements + recv_list[0][j]]);
-
-                    printf("\n");
-
-                }
-
-                */
             }
         }
 
