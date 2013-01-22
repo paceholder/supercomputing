@@ -106,6 +106,8 @@ int main(int argc, char *argv[]) {
     /********** END INITIALIZATION **********/
 
     PAPI_flops (&rtime, &ptime, &flpops, &mflops);
+    printf("%s=%f\n", "init", ptime);
+
 
     /********** START COMPUTATIONAL LOOP **********/
     int total_iters = compute_solution(max_iters, nintci, nintcf, nextcf, lcc, bp, bs, bw, bl, bn,
@@ -115,6 +117,8 @@ int main(int argc, char *argv[]) {
     /********** END COMPUTATIONAL LOOP **********/
 
     PAPI_flops (&rtime, &ptime, &flpops, &mflops);
+    printf("%s=%f\n", "comp", ptime);
+
 
     /********** START FINALIZATION **********/
     finalization(file_in, out_prefix, total_iters, residual_ratio, nintci, nintcf, points_count,
@@ -122,6 +126,8 @@ int main(int argc, char *argv[]) {
     /********** END FINALIZATION **********/
 
     PAPI_flops (&rtime, &ptime, &flpops, &mflops);
+    printf("%s=%f\n", "fin", ptime);
+
 
     free(cnorm);
     free(oc);
