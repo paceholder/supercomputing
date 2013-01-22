@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
         MPI_Abort(MPI_COMM_WORLD, my_rank);
     }
 
-/*
+
     if ( my_rank == 2 ) {
         char file_vtk_out[1000];
         file_vtk_out[0] = '\0';
@@ -111,12 +111,14 @@ int main(int argc, char *argv[]) {
                            send_count, send_list, 
                            recv_count, recv_list);
     }
-*/
+
     /********** END INITIALIZATION **********/
 
 
 
     /********** START COMPUTATIONAL LOOP **********/
+
+/*    
     int total_iters = compute_solution(max_iters, nintci, nintcf, nextcf, lcc, 
                                        bp, bs, bw, bl, bn, be, bh, 
                                        cnorm, var, su, cgup, &residual_ratio,
@@ -128,13 +130,13 @@ int main(int argc, char *argv[]) {
 
                                        send_count, send_list, 
                                        recv_count, recv_list);
-    /********** END COMPUTATIONAL LOOP **********/
+*/    /********** END COMPUTATIONAL LOOP **********/
 
     printf("AFTER COMPUTE SOLUTION\n");
 
     /********** START FINALIZATION **********/
-    finalization(file_in, out_prefix, total_iters, residual_ratio, nintci, nintcf, points_count,
-                 points, elems, var, cgup, su);
+//    finalization(file_in, out_prefix, total_iters, residual_ratio, nintci, nintcf, points_count,
+  //               points, elems, var, cgup, su);
 
     /********** END FINALIZATION **********/
 
