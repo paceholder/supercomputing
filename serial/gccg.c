@@ -8,7 +8,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+
 #include "mpi.h"
+
+#include <papi.h>
 
 #include "initialization.h"
 #include "compute_solution.h"
@@ -72,6 +75,13 @@ int main(int argc, char *argv[]) {
     char *out_prefix = argv[2];
     char *part_type = (argc == 3 ? "classical" : argv[3]);
 
+
+    static float rtime, ptime, mflops;
+    static long_long flpops;
+
+
+    PAPI_flops (&rtime, &ptime, &flpops, &mflops);
+
     /********** START INITIALIZATION **********/
     // read-in the input file
     int init_status = initialization(file_in, part_type, &nintci, &nintcf, &nextci, &nextcf, &lcc,
@@ -95,6 +105,8 @@ int main(int argc, char *argv[]) {
 
     /********** END INITIALIZATION **********/
 
+    PAPI_flops (&rtime, &ptime, &flpops, &mflops);
+
     /********** START COMPUTATIONAL LOOP **********/
     int total_iters = compute_solution(max_iters, nintci, nintcf, nextcf, lcc, bp, bs, bw, bl, bn,
                                        be, bh, cnorm, var, su, cgup, &residual_ratio,
@@ -102,10 +114,14 @@ int main(int argc, char *argv[]) {
                                        send_count, send_list, recv_count, recv_list);
     /********** END COMPUTATIONAL LOOP **********/
 
+    PAPI_flops (&rtime, &ptime, &flpops, &mflops);
+
     /********** START FINALIZATION **********/
     finalization(file_in, out_prefix, total_iters, residual_ratio, nintci, nintcf, points_count,
                  points, elems, var, cgup, su);
     /********** END FINALIZATION **********/
+
+    PAPI_flops (&rtime, &ptime, &flpops, &mflops);
 
     free(cnorm);
     free(oc);
