@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
 
     /********** START FINALIZATION **********/
     finalization(file_in, out_prefix, total_iters, residual_ratio, nintci, nintcf, points_count,
-                 points, elems, var, cgup, su);
+                 points, elems, var, cgup, su, bp);
     /********** END FINALIZATION **********/
 
     PAPI_flops (&rtime, &ptime, &flpops, &mflops);

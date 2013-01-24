@@ -10,7 +10,7 @@
 
 void finalization(char* file_in, char* out_prefix, int total_iters, double residual_ratio,
                   int nintci, int nintcf, int points_count, int** points, int* elems, double* var,
-                  double* cgup, double* su);
+                  double* cgup, double* su, double *bp);
 
 #endif /* FINALIZATION_H_ */
 

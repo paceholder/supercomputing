@@ -45,6 +45,7 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
         resref = resref + resvec[nc] * resvec[nc];
     }
 
+
     MPI_Allreduce(MPI_IN_PLACE, &resref, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
     resref = sqrt(resref);
@@ -53,20 +54,19 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
         return 0;
     }
 
-    printf("nintct %d\n", nintcf);
-    printf("RESREF %f\n", resref);
-
     int my_rank;
     int neighbours_count;
     MPI_Comm_size(MPI_COMM_WORLD, &neighbours_count);    /// get number of processes
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
+    for ( i = 0; i < neighbours_count; ++i )
+        printf("rank %d ; send %d to neighbour %d\n", my_rank, send_count[i], i);
+
+
     /* how many cells do we receive */
     int total_recv = 0;
     for ( i = 0; i < neighbours_count; ++i )
         total_recv += number_of_elements_in_partitions[i];
-
-    printf("TOTAL ELEM %d\n", total_recv);
 
     /** the computation vectors */
     double *direc1 = (double *) calloc(sizeof(double), (nintcf + 1) + total_recv + 1);
@@ -97,7 +97,6 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
         for ( j = 0; j < recv_count[i]; ++j )
             b[j] = 1;
 
-        // printf("%d %d %d %d %d\n", b[0], b[1], b[2], b[3], b[4]);
         MPI_Type_indexed(recv_count[i], b, recv_list[i], MPI_DOUBLE, &recv_datatypes[i]);
         MPI_Type_commit(&recv_datatypes[i]);
         free(b);
@@ -221,8 +220,6 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
         MPI_Allreduce(MPI_IN_PLACE, &res_updated, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
         res_updated = sqrt(res_updated);
-
-        printf("ITERATION: %d  RESID %e\n", iter, res_updated);
 
         *residual_ratio = res_updated / resref;
 

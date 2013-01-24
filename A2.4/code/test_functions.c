@@ -40,7 +40,6 @@ int test_distribution(char *file_in, char *file_vtk_out, int *local_global_index
     int f_status = read_binary_geo(file_in, &nintci, &nintcf, &nextci, &nextcf, &lcc,
                                    &bs, &be, &bn, &bw,
                                    &bl, &bh, &bp,
-                                   &cgup,
                                    &su, &points_count,
                                    &points, &elems);
 
@@ -49,7 +48,7 @@ int test_distribution(char *file_in, char *file_vtk_out, int *local_global_index
 
     vtk_write_unstr_grid_header(file_in, file_vtk_out, 0, nintcf, points_count, points, elems);
 
-    v = (double*) malloc( (size_t)(nintcf+1) * sizeof(double));
+    v = (double*) calloc( nintcf+1, sizeof(double));
 
     int i;
     for ( i = 0; i <= num_elems; ++i ) {
@@ -57,7 +56,13 @@ int test_distribution(char *file_in, char *file_vtk_out, int *local_global_index
     }
 
 
-    vtk_append_double(file_vtk_out, "partition", 0, nintcf, v);
+    vtk_append_double(file_vtk_out, "cgup", 0, nintcf, v);
+
+    for ( i = 0; i <= num_elems; ++i ) {
+        v[local_global_index[i]] = bp[i];
+    }
+
+    vtk_append_double(file_vtk_out, "bp", 0, nintcf, v);
 
     free(v);
 
@@ -88,7 +93,6 @@ int test_communication(char *file_in, char *file_vtk_out, int *local_global_inde
     int f_status = read_binary_geo(file_in, &nintci, &nintcf, &nextci, &nextcf, &lcc,
                                    &bs, &be, &bn, &bw,
                                    &bl, &bh, &bp,
-                                   &cgup,
                                    &su, &points_count,
                                    &points, &elems);
 

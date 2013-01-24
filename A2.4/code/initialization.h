@@ -19,7 +19,8 @@ int initialization(char* file_in, char* part_type, int* nintci, int* nintcf, int
                    double** cnorm, 
                    int** local_global_index, int** global_local_index,
 
-                   int* number_of_elements,
+                   int* global_number_of_elements,
+                   int* local_number_of_elements,
                    int** number_of_elements_in_partitions,
                    int** partitions_offsets,
                    int** send_count, int*** send_list, 

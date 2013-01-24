@@ -36,7 +36,6 @@ int read_binary_geo(char *file_name,
                     double **BS, double **BE, double **BN, 
                     double **BW, double **BL, double **BH,
                     double **BP,
-                    double **CGUP,
                     double **SU, int* points_count, int*** points, int** elems) {
     int i = 0;
     FILE *fp = fopen(file_name, "rb");
@@ -120,11 +119,6 @@ int read_binary_geo(char *file_name,
         return -1;
     }
 
-    if ( (*CGUP = (double *) malloc((*NEXTCF + 1) * sizeof(double))) == NULL) {
-        fprintf(stderr, "malloc(CGUP) failed\n");
-        return -1;
-    }
-
     // read the other arrays
     for ( i = (*NINTCI); i <= *NINTCF; i++ ) {
         fread(&((*BS)[i]), sizeof(double), 1, fp);
@@ -135,8 +129,6 @@ int read_binary_geo(char *file_name,
         fread(&((*BH)[i]), sizeof(double), 1, fp);
         fread(&((*BP)[i]), sizeof(double), 1, fp);
         fread(&((*SU)[i]), sizeof(double), 1, fp);
-
-        (*CGUP)[i] = 1.0 / ( (*BP)[i] );
     }
 
 

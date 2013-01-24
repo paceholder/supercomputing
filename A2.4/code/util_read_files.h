@@ -13,7 +13,6 @@ int read_binary_geo(char *file_name,
                     double **BS, double **BE, double **BN, 
                     double **BW, double **BL, double **BH,
                     double **BP, 
-                    double **CGUP,
                     double **SU, int* nodeCnt, int***points, int** elems);
 
 #endif /* XREAD_H_ */

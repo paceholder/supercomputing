@@ -15,6 +15,10 @@
     #include <scorep/SCOREP_User.h>
 #endif
 
+#ifdef SPEEDUP
+    #include <papi.h>
+#endif
+
 #include "initialization.h"
 #include "compute_solution.h"
 #include "finalization.h"
@@ -66,7 +70,8 @@ int main(int argc, char *argv[]) {
     idx_t* npart;     /// partition vector for the points (nodes) of the mesh
     int objval;    /// resulting edgecut of total communication volume (classical distrib->zeros)
 
-    int number_of_elements; // number of elements in current partition
+    int global_number_of_elements; // number of elements in current partition
+    int local_number_of_elements; // number of elements in current partition
     int *number_of_elements_in_partitions; // number of elements in all communicating partitions
     int *partitions_offsets; // offsets for direc1 vector
 
@@ -85,6 +90,13 @@ int main(int argc, char *argv[]) {
 
     /********** START INITIALIZATION **********/
 
+#ifdef SPEEDUP
+    static float rtime, ptime, mflops;
+    static long_long flpops;
+    PAPI_flops (&rtime, &ptime, &flpops, &mflops);
+#endif
+
+
 #ifdef INSTRUMENTED
     SCOREP_USER_REGION_DEFINE( init )
     SCOREP_USER_REGION_BEGIN( init, "init", SCOREP_USER_REGION_TYPE_PHASE )
@@ -96,7 +108,9 @@ int main(int argc, char *argv[]) {
                                      &local_global_index,
                                      &global_local_index, 
 
-                                     &number_of_elements,
+                                      
+                                     &global_number_of_elements,
+                                     &local_number_of_elements,
                                      &number_of_elements_in_partitions,
                                      &partitions_offsets,
 
@@ -111,7 +125,7 @@ int main(int argc, char *argv[]) {
 
 
     #ifdef DEBUG_OUTPUT
-    if ( my_rank == 2 ) {
+    if ( my_rank == 1 ) {
         char file_vtk_out[1000];
         file_vtk_out[0] = '\0';
         strcat(file_vtk_out, out_prefix);
@@ -127,6 +141,14 @@ int main(int argc, char *argv[]) {
     }
     #endif
 
+#ifdef SPEEDUP
+    PAPI_flops (&rtime, &ptime, &flpops, &mflops);
+    
+    MPI_Allreduce(MPI_IN_PLACE, &ptime, 1, MPI_FLOAT, MPI_MAX,
+                  MPI_COMM_WORLD);
+    if (my_rank == 0)
+        printf("%s=%f\n", "init", ptime);
+#endif
     /********** END INITIALIZATION **********/
 
 
@@ -144,7 +166,7 @@ int main(int argc, char *argv[]) {
                                        cnorm, var, su, cgup, &residual_ratio,
                                        local_global_index, global_local_index, 
 
-                                       number_of_elements,
+                                       local_number_of_elements,
                                        number_of_elements_in_partitions,
                                        partitions_offsets,
 
@@ -156,10 +178,14 @@ int main(int argc, char *argv[]) {
     SCOREP_USER_REGION_END( compute )
 #endif
 
+#ifdef SPEEDUP
+    PAPI_flops (&rtime, &ptime, &flpops, &mflops);
+    MPI_Allreduce(MPI_IN_PLACE, &ptime, 1, MPI_FLOAT, MPI_MAX,
+                  MPI_COMM_WORLD);
+    if (my_rank == 0)
+        printf("%s=%f\n", "compute", ptime);
+#endif
     /********** END COMPUTATIONAL LOOP **********/
-
-    printf("AFTER COMPUTE SOLUTION\n");
-
 
 
     /********** START FINALIZATION **********/
@@ -170,15 +196,28 @@ int main(int argc, char *argv[]) {
     SCOREP_USER_REGION_BEGIN( final, "final", SCOREP_USER_REGION_TYPE_PHASE )
 #endif
 
-    finalization(file_in, out_prefix, total_iters, residual_ratio, nintci, nintcf, points_count,
-                 points, elems, var, cgup, su);
+
+    if ( my_rank == 0)
+        finalization(file_in, out_prefix, total_iters, residual_ratio, nintci, nintcf, points_count,
+                     points, elems, 
+                     local_number_of_elements,
+                     global_number_of_elements,
+                     local_global_index,
+                     var, cgup, su);
 
 #ifdef INSTRUMENTED
     SCOREP_USER_REGION_END( final )
 #endif
 
-    /********** END FINALIZATION **********/
+#ifdef SPEEDUP
+    PAPI_flops (&rtime, &ptime, &flpops, &mflops);
+    MPI_Allreduce(MPI_IN_PLACE, &ptime, 1, MPI_FLOAT, MPI_MAX,
+                  MPI_COMM_WORLD);
+    if (my_rank == 0)
+        printf("%s=%f\n", "final", ptime);
+#endif
 
+    /********** END FINALIZATION **********/
 
     free(cnorm);
     free(oc);

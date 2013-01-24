@@ -67,8 +67,6 @@ void calculate_number_of_elements_and_offsets(int** number_of_elements_in_partit
 
     MPI_Request requests[neighbours_count];
 
-    printf("local LCC\n");
-    printf("myrank %d\n", my_rank);
     for ( i = 0; i < neighbours_count; ++i ) {
         // checks whether we communicate with neighbour #i
         if ((*recv_count)[i] > 0 ) {
@@ -91,12 +89,6 @@ void calculate_number_of_elements_and_offsets(int** number_of_elements_in_partit
         }
     }
 
-
-    for ( i = 0; i < neighbours_count; ++i ) {
-        printf("rank %d, neighbour %d elements %d\n", my_rank, i, (*number_of_elements_in_partitions)[i]);
-    }
-
-
     // an array of offsets for ghost layers from each neighbour to map lcc correctly 
     *partitions_offsets = (int*) calloc(neighbours_count, sizeof(int));
 
@@ -106,11 +98,6 @@ void calculate_number_of_elements_and_offsets(int** number_of_elements_in_partit
             os = (*number_of_elements_in_partitions)[i-1];
         (*partitions_offsets)[i] = (*partitions_offsets)[i-1] + os;
     }
-/*
-    for ( i = 0; i < neighbours_count; ++i ) {
-        printf("rank %d   partition %d offset %d\n", my_rank, i, (*partitions_offsets)[i]);
-    }
-    */
 }
 
 
@@ -191,12 +178,6 @@ void fill_local_lcc(int** glob_lcc,
             (*lcc)[i][j] = new_local_index;
         }
     }
-
-/*
-    for ( i = 0; i < neighbours_count; ++i ) {
-        printf("rank %d neighbour: %d inner_offset %d\n", my_rank, i, offsets_inside_partition[i]);
-        }
-*/
 }
 
 
@@ -230,19 +211,20 @@ void allocate_memory_for_mapping_arrays(int** local_global_index,
 void fill_local_arrays(int** local_global_index,
                        int** global_local_index,
                        double** cgup,
-                       double** be,
                        double** bs,
+                       double** be,
+                       double** bn,
                        double** bw,
-                       double** bh,
                        double** bl,
+                       double** bh,
                        double** bp,
 
-                       double* glob_cgup,
-                       double* glob_be,
                        double* glob_bs,
+                       double* glob_be,
+                       double* glob_bn,
                        double* glob_bw,
-                       double* glob_bh,
                        double* glob_bl,
+                       double* glob_bh,
                        double* glob_bp,
 
                        idx_t ne,
@@ -262,13 +244,15 @@ void fill_local_arrays(int** local_global_index,
         if ( partition == my_rank ) {
             (*local_global_index)[current_index[partition]] = i;
 
-            (*cgup)[current_index[partition]] = glob_cgup[i];
-            (*be)[current_index[partition]] = glob_be[i];
             (*bs)[current_index[partition]] = glob_bs[i];
+            (*be)[current_index[partition]] = glob_be[i];
+            (*bn)[current_index[partition]] = glob_bn[i];
             (*bw)[current_index[partition]] = glob_bw[i];
-            (*bh)[current_index[partition]] = glob_bh[i];
             (*bl)[current_index[partition]] = glob_bl[i];
+            (*bh)[current_index[partition]] = glob_bh[i];
             (*bp)[current_index[partition]] = glob_bp[i];
+
+            (*cgup)[current_index[partition]] = 1.0 / glob_bp[i];
         }
 
         (*global_local_index)[i] = current_index[partition];
@@ -403,9 +387,6 @@ void fill_send_recv_arrays(int** send_count, int*** send_list,
         //int global_index = (*local_global_index)[i];
         int send_global_index = (*local_global_index)[i];
 
-        if (i != (*global_local_index)[send_global_index])
-            printf("OLOLOLOLOLOLOLO!\n");
-    
         for ( j = 0; j < 6; ++j ) {
             // global index of neighbouring cell
             int neighbouring_cell = glob_lcc[send_global_index][j];
@@ -449,7 +430,8 @@ int initialization(char* file_in, char* part_type,
                    double** var, double** cgup, double** oc, double** cnorm, 
                    int** local_global_index, int** global_local_index,
 
-                   int* number_of_elements,
+                   int* global_number_of_elements,
+                   int* local_number_of_elements,
                    int** number_of_elements_in_partitions,
                    int** partitions_offsets,
                    int** send_count, int*** send_list, 
@@ -465,7 +447,8 @@ int initialization(char* file_in, char* part_type,
     int my_rank;
     idx_t ne;
     idx_t nn;
-    *number_of_elements = 0;
+    *local_number_of_elements = 0;
+    *global_number_of_elements = 0;
 
     double* glob_bs;
     double* glob_be;
@@ -474,7 +457,6 @@ int initialization(char* file_in, char* part_type,
     double* glob_bl;
     double* glob_bh;
     double* glob_bp;
-    double* glob_cgup;
 
     int** glob_lcc;
 
@@ -484,9 +466,9 @@ int initialization(char* file_in, char* part_type,
 
     // read-in the input file
     int f_status = read_binary_geo(file_in, nintci, nintcf, nextci, nextcf, &glob_lcc,
-                                    &glob_bs, &glob_be, &glob_bn, &glob_bw,
-                                    &glob_bl, &glob_bh, &glob_bp,
-                                    &glob_cgup,
+                                    &glob_bs, &glob_be, &glob_bn,
+                                    &glob_bw, &glob_bl, &glob_bh,
+                                    &glob_bp,
                                     su, points_count,
                                     points, elems);
 
@@ -496,7 +478,7 @@ int initialization(char* file_in, char* part_type,
 
     ne = *nintcf+1;
     nn = *points_count;
-
+    *global_number_of_elements = ne;
 
     /* partitioning */
 
@@ -506,7 +488,7 @@ int initialization(char* file_in, char* part_type,
                  epart, npart);
 
 
-    *number_of_elements = get_number_of_local_elements(ne, epart);
+    *local_number_of_elements = get_number_of_local_elements(ne, epart);
 
 
     allocate_memory_for_distributed_arrays(var,
@@ -517,19 +499,18 @@ int initialization(char* file_in, char* part_type,
                                            bs, bw,
                                            bh, bl,
                                            bp,
-                                           *number_of_elements);
+                                           *local_number_of_elements);
 
     allocate_memory_for_mapping_arrays(local_global_index, 
                                        global_local_index, 
-                                       *number_of_elements,
+                                       *local_number_of_elements,
                                        ne);
 
 
     fill_local_arrays(local_global_index, global_local_index,
                       cgup,
-                      be, bs, bw, bh, bl, bp,
-                      glob_cgup,
-                      glob_be, glob_bs, glob_bw, glob_bh, glob_bl, glob_bp,
+                      bs, be, bn, bw, bh, bl, bp,
+                      glob_bs, glob_be, glob_bn, glob_bw, glob_bh, glob_bl, glob_bp,
                       ne,
                       epart);
 
@@ -537,7 +518,7 @@ int initialization(char* file_in, char* part_type,
     fill_send_recv_arrays(send_count, send_list,
                           recv_count, recv_list,
                           glob_lcc,
-                          *number_of_elements,
+                          *local_number_of_elements,
                           ne,
                           local_global_index,
                           global_local_index,
@@ -546,11 +527,11 @@ int initialization(char* file_in, char* part_type,
     calculate_number_of_elements_and_offsets(number_of_elements_in_partitions,
                                              partitions_offsets,
                                              recv_count,
-                                             *number_of_elements);
+                                             *local_number_of_elements);
     fill_local_lcc(glob_lcc, lcc, 
                    number_of_elements_in_partitions,
                    partitions_offsets,
-                   *number_of_elements, 
+                   *local_number_of_elements, 
                    ne,
                    recv_count, 
                    local_global_index, 
@@ -572,7 +553,7 @@ int initialization(char* file_in, char* part_type,
     free(glob_bp);
 
     *nintci = 0;
-    *nintcf = *number_of_elements -1;
+    *nintcf = *local_number_of_elements -1;
 
     return 0;
 }
