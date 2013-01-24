@@ -59,8 +59,8 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
     MPI_Comm_size(MPI_COMM_WORLD, &neighbours_count);    /// get number of processes
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
-    for ( i = 0; i < neighbours_count; ++i )
-        printf("rank %d ; send %d to neighbour %d\n", my_rank, send_count[i], i);
+//    for ( i = 0; i < neighbours_count; ++i )
+//        printf("rank %d ; send %d to neighbour %d\n", my_rank, send_count[i], i);
 
 
     /* how many cells do we receive */

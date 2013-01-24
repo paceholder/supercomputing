@@ -6,7 +6,7 @@
 
 #CC = scorep --user mpicc
 CC = mpicc
-CFLAGS = -Wall -O3  -DDEBUG_OUTPUT
+CFLAGS = -Wall -O3  -DSPEEDUP
 #-DSPEEDUP # -DDEBUG_OUTPUT
 
 SRCS = initialization.c compute_solution.c \
