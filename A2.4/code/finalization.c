@@ -6,6 +6,8 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
+
 #include "util_write_files.h"
 
 #include "util_read_files.h"

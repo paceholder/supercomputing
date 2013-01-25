@@ -47,7 +47,7 @@ do
         do
             for num in "2" "4" "8" "16" "32" "64"
             do
-                psc_frontend --apprun="./gccg $geom $dist $dist" --mpinumprocs=$num --strategy=MPI --force-localhost $ph --profile="properties-$geom-$dist-INIT$init-$num.psc
+                psc_frontend --apprun="./gccg $geom $dist $dist" --mpinumprocs=$num --strategy=MPI --force-localhost $ph --profile="properties-$geom-$dist-INIT$init-$num.psc > $geom.$dist.$num-periscope.txt
             done
         done
     done

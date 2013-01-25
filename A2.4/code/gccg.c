@@ -114,7 +114,6 @@ int main(int argc, char *argv[]) {
                                      &local_global_index,
                                      &global_local_index, 
 
-                                      
                                      &global_number_of_elements,
                                      &local_number_of_elements,
                                      &number_of_elements_in_partitions,
@@ -172,7 +171,9 @@ int main(int argc, char *argv[]) {
     SCOREP_USER_OA_PHASE_BEGIN(OA_Comp_Phase, "OA_Comp_Phase", SCOREP_USER_REGION_TYPE_COMMON)
 #endif
 
-    int total_iters = compute_solution(max_iters, nintci, nintcf, nextcf, lcc, 
+    int total_iters = compute_solution(max_iters, 
+                                       nintci, nintcf, 
+                                       lcc, 
                                        bp, bs, bw, bl, bn, be, bh, 
                                        cnorm, var, su, cgup, &residual_ratio,
                                        local_global_index, global_local_index, 
@@ -182,7 +183,8 @@ int main(int argc, char *argv[]) {
                                        partitions_offsets,
 
                                        send_count, send_list, 
-                                       recv_count, recv_list);
+                                       recv_count, recv_list,
+                                       epart);
 
 
 #ifdef INSTRUMENTED2

@@ -29,6 +29,7 @@ void allocate_memory_for_distributed_arrays(double** var,
                                             double** bh,
                                             double** bl,
                                             double** bp,
+                                            double** su,
                                             int array_size) {
 
     *var = (double*) calloc(array_size, sizeof(double));
@@ -47,6 +48,7 @@ void allocate_memory_for_distributed_arrays(double** var,
     *bh = (double*) calloc(array_size, sizeof(double));
     *bl = (double*) calloc(array_size, sizeof(double));
     *bp = (double*) calloc(array_size, sizeof(double));
+    *su = (double*) calloc(array_size, sizeof(double));
 }
 
 
@@ -70,18 +72,20 @@ void calculate_number_of_elements_and_offsets(int** number_of_elements_in_partit
 
     for ( i = 0; i < neighbours_count; ++i ) {
         // checks whether we communicate with neighbour #i
-        if ((*recv_count)[i] > 0 ) {
-            MPI_Isend(&number_of_elements, 1, MPI_INT, i, 10, MPI_COMM_WORLD, &requests[i]);
-        }
+        MPI_Isend(&number_of_elements, 1, MPI_INT, i, 10, MPI_COMM_WORLD, &requests[i]);
     }
 
     for ( i = 0; i < neighbours_count; ++i ) {
-        if ((*recv_count)[i] > 0 ) {
-            // then we receive from the same neighbour
-            MPI_Status status;
-            MPI_Recv(&(*number_of_elements_in_partitions)[i], 1, MPI_INT, i, 10, MPI_COMM_WORLD, &status);
-        }
+        // then we receive from the same neighbour
+        MPI_Status status;
+        MPI_Recv(&(*number_of_elements_in_partitions)[i], 1, MPI_INT, i, 10, MPI_COMM_WORLD, &status);
     }
+
+    #ifdef DEBUG
+    if ( my_rank == 0)
+    for ( i = 0; i < neighbours_count; ++i )
+        printf("neighbours in %d - %d\n", i, (*number_of_elements_in_partitions)[i]);
+    #endif
 
     MPI_Status status;
     for ( i = 0; i < neighbours_count; ++i ) {
@@ -94,11 +98,15 @@ void calculate_number_of_elements_and_offsets(int** number_of_elements_in_partit
     *partitions_offsets = (int*) calloc(neighbours_count, sizeof(int));
 
     for ( i = 1; i < neighbours_count; ++i ) {
-        int os = 0;
-        if ((*recv_count)[i-1] > 0 )
-            os = (*number_of_elements_in_partitions)[i-1];
+        int os = (*number_of_elements_in_partitions)[i-1];
         (*partitions_offsets)[i] = (*partitions_offsets)[i-1] + os;
     }
+
+    #ifdef DEBUG
+    if ( my_rank == 0)
+    for ( i = 0; i < neighbours_count; ++i )
+        printf("offsets for %d - %d\n", i, (*partitions_offsets)[i]);
+    #endif
 }
 
 
@@ -130,13 +138,10 @@ void fill_local_lcc(int** glob_lcc,
     // allocate new array for remapped lcc
     *lcc = (int**) calloc(number_of_elements, sizeof(int*));
 
-    // current position of ghost chell index inside ghost layers pats
-//    int offsets_inside_partition[neighbours_count];
-//    memset(offsets_inside_partition, 0, neighbours_count * sizeof(int));
 
     for ( i = 0; i < number_of_elements; ++i ) {
         // memory for one cell of lcc
-        (*lcc)[i] = calloc(6, sizeof(int));
+        (*lcc)[i] = (int*) calloc(6, sizeof(int));
 
         // take global index for current local element
         int gl_index = (*local_global_index)[i];
@@ -148,7 +153,7 @@ void fill_local_lcc(int** glob_lcc,
             int old_global_index = cells[j];
 
             // stored in remapped lcc
-            int new_local_index;
+            int new_local_index = -1;
 
             /*        indexing
              *
@@ -170,10 +175,10 @@ void fill_local_lcc(int** glob_lcc,
                     // local number for ghost cell in neighbouring partition 
                     new_local_index = number_of_elements + (*partitions_offsets)[partition] 
                                                          + (*global_local_index)[old_global_index];
-                } else
+                } else {
                     // link to inner cell
                     new_local_index = (*global_local_index)[old_global_index];
-
+                }
             }
 
             (*lcc)[i][j] = new_local_index;
@@ -219,6 +224,7 @@ void fill_local_arrays(int** local_global_index,
                        double** bl,
                        double** bh,
                        double** bp,
+                       double** su,
 
                        double* glob_bs,
                        double* glob_be,
@@ -227,6 +233,7 @@ void fill_local_arrays(int** local_global_index,
                        double* glob_bl,
                        double* glob_bh,
                        double* glob_bp,
+                       double* glob_su,
 
                        idx_t ne,
                        idx_t** epart) {
@@ -253,6 +260,7 @@ void fill_local_arrays(int** local_global_index,
             (*bl)[current_index[partition]] = glob_bl[i];
             (*bh)[current_index[partition]] = glob_bh[i];
             (*bp)[current_index[partition]] = glob_bp[i];
+            (*su)[current_index[partition]] = glob_su[i];
 
             (*cgup)[current_index[partition]] = 1.0 / glob_bp[i];
         }
@@ -330,6 +338,9 @@ void partitioning(idx_t ne, idx_t nn,
 }
 
 
+//------------------------------------------------------------------------------------------
+
+
 void fill_send_recv_arrays(int** send_count, int*** send_list,
                            int** recv_count, int*** recv_list,
                            int** glob_lcc,
@@ -375,6 +386,14 @@ void fill_send_recv_arrays(int** send_count, int*** send_list,
             }
         }
     }
+
+    #ifdef DEBUG
+    for ( i = 0; i < num_procs; ++i )
+    {
+        printf(" proc %d  send %d recv %d\n", i, (*send_count)[i], (*recv_count)[i]);
+        assert((*send_count)[i] == (*recv_count)[i]);
+    }
+    #endif
 
     *send_list = (int**) calloc(num_procs, sizeof(int*));
     *recv_list = (int**) calloc(num_procs, sizeof(int*));
@@ -458,6 +477,7 @@ int initialization(char* file_in, char* part_type,
     double* glob_bl;
     double* glob_bh;
     double* glob_bp;
+    double* glob_su;
 
     int** glob_lcc;
 
@@ -470,7 +490,7 @@ int initialization(char* file_in, char* part_type,
                                     &glob_bs, &glob_be, &glob_bn,
                                     &glob_bw, &glob_bl, &glob_bh,
                                     &glob_bp,
-                                    su, points_count,
+                                    &glob_su, points_count,
                                     points, elems);
 
 
@@ -498,7 +518,7 @@ int initialization(char* file_in, char* part_type,
                                            bn, be,
                                            bs, bw,
                                            bh, bl,
-                                           bp,
+                                           bp, su,
                                            *local_number_of_elements);
 
     allocate_memory_for_mapping_arrays(local_global_index, 
@@ -509,8 +529,8 @@ int initialization(char* file_in, char* part_type,
 
     fill_local_arrays(local_global_index, global_local_index,
                       cgup,
-                      bs, be, bn, bw, bh, bl, bp,
-                      glob_bs, glob_be, glob_bn, glob_bw, glob_bh, glob_bl, glob_bp,
+                      bs, be, bn, bw, bh, bl, bp, su,
+                      glob_bs, glob_be, glob_bn, glob_bw, glob_bh, glob_bl, glob_bp, glob_su,
                       ne,
                       epart);
 
@@ -546,6 +566,7 @@ int initialization(char* file_in, char* part_type,
     free(glob_bl);
     free(glob_bh);
     free(glob_bp);
+    free(glob_su);
 
     *nintci = 0;
     *nintcf = *local_number_of_elements -1;

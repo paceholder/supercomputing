@@ -9,17 +9,25 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "mpi.h"
+#include <assert.h>
 
-int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, int** lcc, double* bp,
-                     double* bs, double* bw, double* bl, double* bn, double* be, double* bh,
+#include <metis.h>
+#include <mpi.h>
+
+int compute_solution(const int max_iters, 
+                     int nintci, int nintcf, 
+                     int** lcc, 
+                     double* bp,
+                     double* bs, double* bw, double* bl, 
+                     double* bn, double* be, double* bh,
                      double* cnorm, double* var, double *su, double* cgup, double* residual_ratio,
                      int* local_global_index, int* global_local_index, 
                      int number_of_elements,
                      int* number_of_elements_in_partitions,
                      int* partitions_offsets,
                      int* send_count, int** send_list, 
-                     int* recv_count, int** recv_list) {
+                     int* recv_count, int** recv_list,
+                     idx_t* epart) {
     int iter = 1;
     int if1 = 0;
     int if2 = 0;
@@ -101,6 +109,9 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
     MPI_Request requests[neighbours_count];
     MPI_Status  statuses[neighbours_count];
 
+
+    /// ---------------------------------------------------
+
     while ( iter < max_iters ) {
         /**********  START COMP PHASE 1 **********/
         // update the old values of direc
@@ -108,8 +119,10 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
             direc1[nc] = direc1[nc] + resvec[nc] * cgup[nc];
         }
 
+
         for ( i = 0; i <  neighbours_count; ++i ) {
-            if ( recv_count[i] > 0 ) {
+            assert ( send_count[i] == recv_count[i] );
+            if ( send_count[i] > 0 ) {
                 MPI_Isend(direc1, 1, send_datatypes[i], i, 10, MPI_COMM_WORLD, &requests[i]);
             }
         }
@@ -123,7 +136,7 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
 
 
         for ( i = 0; i <  neighbours_count; ++i ) {
-            if ( recv_count[i] > 0 )
+            if ( send_count[i] > 0 )
                 MPI_Wait(&requests[i], &statuses[i]);
         }
 
@@ -140,6 +153,17 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
                          - bh[nc] * direc1[lcc[nc][5]];
         }
         /********** END COMP PHASE 1 **********/
+
+
+        #ifdef DEBUG
+        for ( i = 0; i < 50; ++i ) {
+            if ( epart[i] == my_rank ) {
+//                printf("global %d direc2 : %e\n", i, direc2[global_local_index[i]]);
+                printf("global %d bs : %e\n", i, bs[global_local_index[i]]);
+            }
+        }
+        #endif
+
 
         /********** START COMP PHASE 2 **********/
         // execute normalization steps
@@ -199,10 +223,17 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
             cnorm[nor] = cnorm[nor] + direc2[nc] * direc2[nc];
             omega = omega + resvec[nc] * direc2[nc];
         }
-        
+  
 
         MPI_Allreduce(MPI_IN_PLACE, &cnorm[nor], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
         MPI_Allreduce(MPI_IN_PLACE, &omega, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+        #ifdef DEBUG
+            if (my_rank == 0){
+            printf("cnorm_nor %e\n", cnorm[nor]);
+            printf("omega %e\n", omega);
+            }
+        #endif
 
         omega = omega / cnorm[nor];
         double res_updated = 0.0;
@@ -215,9 +246,24 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
 
         MPI_Allreduce(MPI_IN_PLACE, &res_updated, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
+
         res_updated = sqrt(res_updated);
 
+
+        #ifdef DEBUG
+        if (iter%100 == 0 && my_rank == 0)
+            printf("%d %.16e\n", iter, res_updated);
+
+        if (iter < 20 && my_rank == 0)
+            printf("%d %.16e\n", iter, res_updated);
+        #endif
+
         *residual_ratio = res_updated / resref;
+
+        #ifdef DEBUG
+            if (my_rank == 0)
+            printf("%d - res_ratio %e\n", iter, *residual_ratio);
+        #endif
 
         // exit on no improvements of residual
         if ( *residual_ratio <= 1.0e-10 ) break;
@@ -246,6 +292,11 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
         }
         nor1 = nor - 1;
         /********** END COMP PHASE 2 **********/
+
+        #ifdef DEBUG
+        if (iter > 2)
+            break;
+        #endif
     }
 
     free(resvec);
