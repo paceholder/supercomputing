@@ -26,7 +26,7 @@ make -f Makefile-speedup
 
 for geom in "pent.geo.bin" "cojack.geo.bin"
 do
-    srun_ps -x -n 1 ../../serial/gccg $geom dist dist
+    srun_ps -x -n 1 ../../serial/gccg $geom dist dist > "serial-$geom-out.txt"
 done
 
 for dist in "classical" "dual"

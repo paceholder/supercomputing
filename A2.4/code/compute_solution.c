@@ -59,10 +59,6 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
     MPI_Comm_size(MPI_COMM_WORLD, &neighbours_count);    /// get number of processes
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
-//    for ( i = 0; i < neighbours_count; ++i )
-//        printf("rank %d ; send %d to neighbour %d\n", my_rank, send_count[i], i);
-
-
     /* how many cells do we receive */
     int total_recv = 0;
     for ( i = 0; i < neighbours_count; ++i )
@@ -112,7 +108,6 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
             direc1[nc] = direc1[nc] + resvec[nc] * cgup[nc];
         }
 
-
         for ( i = 0; i <  neighbours_count; ++i ) {
             if ( recv_count[i] > 0 ) {
                 MPI_Isend(direc1, 1, send_datatypes[i], i, 10, MPI_COMM_WORLD, &requests[i]);
@@ -132,6 +127,8 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
                 MPI_Wait(&requests[i], &statuses[i]);
         }
 
+
+
         // compute new guess (approximation) for direc
         for ( nc = nintci; nc <= nintcf; nc++ ) {
             direc2[nc] = bp[nc] * direc1[nc] 
@@ -143,7 +140,6 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
                          - bh[nc] * direc1[lcc[nc][5]];
         }
         /********** END COMP PHASE 1 **********/
-
 
         /********** START COMP PHASE 2 **********/
         // execute normalization steps
@@ -204,9 +200,9 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
             omega = omega + resvec[nc] * direc2[nc];
         }
         
+
         MPI_Allreduce(MPI_IN_PLACE, &cnorm[nor], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
         MPI_Allreduce(MPI_IN_PLACE, &omega, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
 
         omega = omega / cnorm[nor];
         double res_updated = 0.0;

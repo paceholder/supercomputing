@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <assert.h>
+
 #include <metis.h>
 #include <mpi.h>
 
@@ -63,7 +65,6 @@ void calculate_number_of_elements_and_offsets(int** number_of_elements_in_partit
 
     // we should know how many elements are in each partition
     *number_of_elements_in_partitions = (int*) calloc(neighbours_count, sizeof(int));
-    memset(*number_of_elements_in_partitions, 0, neighbours_count * sizeof(int));
 
     MPI_Request requests[neighbours_count];
 
@@ -92,18 +93,12 @@ void calculate_number_of_elements_and_offsets(int** number_of_elements_in_partit
     // an array of offsets for ghost layers from each neighbour to map lcc correctly 
     *partitions_offsets = (int*) calloc(neighbours_count, sizeof(int));
 
-   // for ( i = 0; i < neighbours_count; ++i ) {
-   //     printf("BEFORE rank %d offset %d\n", my_rank, (*partitions_offsets)[i]);
-   // }
     for ( i = 1; i < neighbours_count; ++i ) {
         int os = 0;
-        if ((*recv_count)[i] > 0 )
+        if ((*recv_count)[i-1] > 0 )
             os = (*number_of_elements_in_partitions)[i-1];
         (*partitions_offsets)[i] = (*partitions_offsets)[i-1] + os;
     }
-    //for ( i = 0; i < neighbours_count; ++i ) {
-    //    printf("A rank %d offset %d\n", my_rank, (*partitions_offsets)[i]);
-    //}
 }
 
 
@@ -247,6 +242,7 @@ void fill_local_arrays(int** local_global_index,
     for ( i = 0; i < ne; ++i ) {
         int partition = (*epart)[i];
 
+
         if ( partition == my_rank ) {
             (*local_global_index)[current_index[partition]] = i;
 
@@ -359,6 +355,8 @@ void fill_send_recv_arrays(int** send_count, int*** send_list,
         // global index of current local element
         int global_index = (*local_global_index)[i];
 
+        assert((*epart)[global_index] == my_rank);
+
         // 6 directions - 6 neighbours
         for ( j = 0; j < 6; ++j ) {
             // global index of neighbouring cell
@@ -413,9 +411,6 @@ void fill_send_recv_arrays(int** send_count, int*** send_list,
     }
 
     free(curr_indices);
-
-//    for ( i = 0; i < num_procs; ++i)
-//        printf("proc %d   neighbour %d   count %d\n", my_rank, i, (*recv_count)[i]);
 }
 
 
@@ -496,7 +491,6 @@ int initialization(char* file_in, char* part_type,
 
     *local_number_of_elements = get_number_of_local_elements(ne, epart);
 
-
     allocate_memory_for_distributed_arrays(var,
                                            cgup,
                                            oc,
@@ -545,11 +539,6 @@ int initialization(char* file_in, char* part_type,
                    epart);
 
 
-    // free(current_indices);
-    // free(glob_var);
-    // free(glob_cgup);
-    // free(glob_oc);
-    // free(glob_cnorm);
     free(glob_bs);
     free(glob_be);
     free(glob_bn);
