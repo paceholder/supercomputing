@@ -11,7 +11,13 @@
 
 #include "mpi.h"
 
-#ifdef INSTRUMENTED
+#ifdef INSTRUMENTED1
+    #include <scorep/SCOREP_User.h>
+#endif
+#ifdef INSTRUMENTED2
+    #include <scorep/SCOREP_User.h>
+#endif
+#ifdef INSTRUMENTED3
     #include <scorep/SCOREP_User.h>
 #endif
 
@@ -97,9 +103,9 @@ int main(int argc, char *argv[]) {
 #endif
 
 
-#ifdef INSTRUMENTED
-    SCOREP_USER_REGION_DEFINE( init )
-    SCOREP_USER_REGION_BEGIN( init, "init", SCOREP_USER_REGION_TYPE_PHASE )
+#ifdef INSTRUMENTED1
+    SCOREP_USER_REGION_DEFINE( OA_Init_Phase )
+    SCOREP_USER_OA_PHASE_BEGIN( OA_Init_Phase, "OA_Init_Phase", SCOREP_USER_REGION_TYPE_COMMON )
 #endif
 
     int init_status = initialization(file_in, part_type, &nintci, &nintcf, &nextci, &nextcf, &lcc,
@@ -149,6 +155,11 @@ int main(int argc, char *argv[]) {
     if (my_rank == 0)
         printf("%s=%f\n", "init", ptime);
 #endif
+
+
+#ifdef INSTRUMENTED1
+    SCOREP_USER_OA_PHASE_END( OA_Init_Phase)
+#endif
     /********** END INITIALIZATION **********/
 
 
@@ -156,9 +167,9 @@ int main(int argc, char *argv[]) {
     /********** START COMPUTATIONAL LOOP **********/
 
 
-#ifdef INSTRUMENTED
-    SCOREP_USER_REGION_DEFINE( compute )
-    SCOREP_USER_REGION_BEGIN( compute, "compute", SCOREP_USER_REGION_TYPE_PHASE )
+#ifdef INSTRUMENTED2
+    SCOREP_USER_REGION_DEFINE(OA_Comp_Phase)
+    SCOREP_USER_OA_PHASE_BEGIN(OA_Comp_Phase, "OA_Comp_Phase", SCOREP_USER_REGION_TYPE_COMMON)
 #endif
 
     int total_iters = compute_solution(max_iters, nintci, nintcf, nextcf, lcc, 
@@ -174,8 +185,8 @@ int main(int argc, char *argv[]) {
                                        recv_count, recv_list);
 
 
-#ifdef INSTRUMENTED
-    SCOREP_USER_REGION_END( compute )
+#ifdef INSTRUMENTED2
+    SCOREP_USER_OA_PHASE_END(OA_Comp_Phase)
 #endif
 
 #ifdef SPEEDUP
@@ -191,9 +202,9 @@ int main(int argc, char *argv[]) {
     /********** START FINALIZATION **********/
 
 
-#ifdef INSTRUMENTED
-    SCOREP_USER_REGION_DEFINE( final )
-    SCOREP_USER_REGION_BEGIN( final, "final", SCOREP_USER_REGION_TYPE_PHASE )
+#ifdef INSTRUMENTED3
+    SCOREP_USER_REGION_DEFINE( OA_Final_Phase )
+    SCOREP_USER_OA_PHASE_BEGIN( OA_Final_Phase, "OA_Final_Phase", SCOREP_USER_REGION_TYPE_COMMON )
 #endif
 
 
@@ -205,8 +216,8 @@ int main(int argc, char *argv[]) {
                      local_global_index,
                      var, cgup, su);
 
-#ifdef INSTRUMENTED
-    SCOREP_USER_REGION_END( final )
+#ifdef INSTRUMENTED3
+    SCOREP_USER_OA_PHASE_END( OA_Final_Phase  )
 #endif
 
 #ifdef SPEEDUP

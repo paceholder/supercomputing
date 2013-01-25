@@ -92,12 +92,18 @@ void calculate_number_of_elements_and_offsets(int** number_of_elements_in_partit
     // an array of offsets for ghost layers from each neighbour to map lcc correctly 
     *partitions_offsets = (int*) calloc(neighbours_count, sizeof(int));
 
+   // for ( i = 0; i < neighbours_count; ++i ) {
+   //     printf("BEFORE rank %d offset %d\n", my_rank, (*partitions_offsets)[i]);
+   // }
     for ( i = 1; i < neighbours_count; ++i ) {
         int os = 0;
         if ((*recv_count)[i] > 0 )
             os = (*number_of_elements_in_partitions)[i-1];
         (*partitions_offsets)[i] = (*partitions_offsets)[i-1] + os;
     }
+    //for ( i = 0; i < neighbours_count; ++i ) {
+    //    printf("A rank %d offset %d\n", my_rank, (*partitions_offsets)[i]);
+    //}
 }
 
 
