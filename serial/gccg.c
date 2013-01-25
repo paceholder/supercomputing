@@ -95,13 +95,6 @@ int main(int argc, char *argv[]) {
         MPI_Abort(MPI_COMM_WORLD, my_rank);
     }
 
-    // Implement this function in test_functions.c and call it here
-    /* test_distribution(file_in, file_vtk_out, local_global_index, 
-     local_num_elems, cgup_local); */
-
-    // Implement this function in test_functions.c and call it here
-    /*test_communication(file_in, file_vtk_out, local_global_index, local_num_elems,
-     neighbors_count, send_count, send_list, recv_count, recv_list);*/
 
     /********** END INITIALIZATION **********/
 

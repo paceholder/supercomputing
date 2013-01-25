@@ -53,17 +53,23 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
     while ( iter < max_iters ) {
         /**********  START COMP PHASE 1 **********/
         // update the old values of direc
+        //
+        
         for ( nc = nintci; nc <= nintcf; nc++ ) {
             direc1[nc] = direc1[nc] + resvec[nc] * cgup[nc];
         }
 
         // compute new guess (approximation) for direc
         for ( nc = nintci; nc <= nintcf; nc++ ) {
-            direc2[nc] = bp[nc] * direc1[nc] - bs[nc] * direc1[lcc[nc][0]]
-                         - bw[nc] * direc1[lcc[nc][3]] - bl[nc] * direc1[lcc[nc][4]]
-                         - bn[nc] * direc1[lcc[nc][2]] - be[nc] * direc1[lcc[nc][1]]
+            direc2[nc] = bp[nc] * direc1[nc] 
+                         - bs[nc] * direc1[lcc[nc][0]]
+                         - bw[nc] * direc1[lcc[nc][3]] 
+                         - bl[nc] * direc1[lcc[nc][4]]
+                         - bn[nc] * direc1[lcc[nc][2]] 
+                         - be[nc] * direc1[lcc[nc][1]]
                          - bh[nc] * direc1[lcc[nc][5]];
         }
+
         /********** END COMP PHASE 1 **********/
 
         /********** START COMP PHASE 2 **********/
@@ -76,6 +82,7 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
             for ( nc = nintci; nc <= nintcf; nc++ ) {
                 occ = occ + adxor1[nc] * direc2[nc];
             }
+
 
             oc1 = occ / cnorm[1];
             for ( nc = nintci; nc <= nintcf; nc++ ) {
@@ -127,6 +134,7 @@ int compute_solution(const int max_iters, int nintci, int nintcf, int nextcf, in
         }
 
         res_updated = sqrt(res_updated);
+
         *residual_ratio = res_updated / resref;
 
         // exit on no improvements of residual
