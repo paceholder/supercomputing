@@ -14,8 +14,8 @@ void finalization(char* file_in, char* out_prefix, int total_iters, double resid
     char file_out[100];
     sprintf(file_out, "%s_summary.out", out_prefix);
 
-    int status = store_simulation_stats(file_in, file_out, nintci, nintcf, var, total_iters,
-                                        residual_ratio);
+//    int status = store_simulation_stats(file_in, file_out, nintci, nintcf, var, total_iters,
+  //                                      residual_ratio);
 
     sprintf(file_out, "%s_data.vtk", out_prefix);
     vtk_write_unstr_grid_header(file_in, file_out, nintci, nintcf, points_count, points, elems);
@@ -23,6 +23,6 @@ void finalization(char* file_in, char* out_prefix, int total_iters, double resid
     vtk_append_double(file_out, "var", nintci, nintcf, var);
     vtk_append_double(file_out, "bp", nintci, nintcf, bp);
 
-    if ( status != 0 ) fprintf(stderr, "Error when trying to write to file %s\n", file_out);
+   // if ( status != 0 ) fprintf(stderr, "Error when trying to write to file %s\n", file_out);
 }
 

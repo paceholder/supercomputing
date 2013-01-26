@@ -5,26 +5,22 @@
 ####################################################################
 
 CC = mpicc
-CFLAGS = -Wall -g -O3 $(PAPI_INC)
+CFLAGS = -Wall -g -O3 -c99 $(PAPI_INC)
 LIBS = -lm $(PAPI_LIB)
 
-LIBPOS=libpos.a
-AR = ar
-ARFLAGS = rv
+SRCS = initialization.c compute_solution.c \
+       finalization.c util_read_files.c \
+       util_write_files.c test_functions.c gccg.c
 
-SRCS = initialization.c compute_solution.c finalization.c test_functions.c util_read_files.c util_write_files.c
-OBJS =  $(addsuffix .o, $(basename $(SRCS)))
+OBJS = $(SRCS:%.c=%.o)
 
 all: gccg 
 
-%.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS)
+%.o:%.c
+	$(CC) $(CFLAGS) $(METIS_INC) $(PAPI_INC) -c -o $@ $<
 
-gccg: gccg.c $(LIBPOS)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
-
-$(LIBPOS) : $(OBJS)
-	$(AR) $(ARFLAGS) $@ $+
+gccg: $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $(OBJS) $(METIS_LIB) $(PAPI_LIB)
 
 clean:
-	rm -rf *.o gccg $(LIBPOS)
+	rm -rf *.o gccg
