@@ -14,13 +14,13 @@ for d in dist:
         finals = []
         print f + "-" + d
         if f.startswith("cojack"):
-            inits = [0.68]
-            computes = [51]
-            finals = [54]
+            inits = [0.27]
+            computes = [20.67]
+            finals = [22.23]
         else:
             inits = [0.23]
-            computes = [11.4]
-            finals = [12.4]
+            computes = [4.8]
+            finals = [5.27]
         for n in nums:
             filename = f + "-" + d + "-" + str(n) + ".txt"
 

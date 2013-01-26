@@ -21,12 +21,15 @@ source /etc/profile.d/modules.sh
 
 module load periscope/1.5 metis papi scorep cube png
 
-
+export SCOREP_METRIC_PAPI=""
+export SCOREP_METRIC_RUSAGE=""
+export SCOREP_ENABLE_TRACING=""
+export SCOREP_EXPERIMENT_DIRECTORY=""
 
 for init in "1" "2" "3"
 do
     make -f Makefile-instrumented clean
-    make -f Makefile-instrumented "INIT=$init"
+    make -f Makefile-instrumented "INST=$init"
 
     if [ $init == "1" ]; then
         ph = "--phase=OA_Init_Phase"
@@ -47,7 +50,8 @@ do
         do
             for num in "2" "4" "8" "16" "32" "64"
             do
-                psc_frontend --apprun="./gccg $geom $dist $dist" --mpinumprocs=$num --strategy=MPI --force-localhost $ph --profile="properties-$geom-$dist-INIT$init-$num.psc > $geom.$dist.$num-periscope.txt
+                export SCOREP_EXPERIMENT_DIRECTORY="periscope-$geom-$dist-$num-PHASE$init"
+                psc_frontend --apprun="./gccg $geom $dist $dist" --mpinumprocs=$num --strategy=MPI --force-localhost $ph --propfile="properties-$geom-$dist-INIT$init-$num.psc
             done
         done
     done
