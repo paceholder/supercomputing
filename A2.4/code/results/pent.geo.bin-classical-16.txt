@@ -1,0 +1,5 @@
+init=0.114808
+compute=1.557532
+Iterations Count: 546
+Residual: 9.695255e-11
+final=1.809140

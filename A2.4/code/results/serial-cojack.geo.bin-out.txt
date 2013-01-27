@@ -1,0 +1,4 @@
+init=0.272357
+comp=19.559141
+Number of iterations: 643
+fin=21.021038
