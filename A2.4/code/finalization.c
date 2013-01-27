@@ -38,7 +38,7 @@ void finalization(char* file_in, char* out_prefix, int total_iters, double resid
     double* v = (double*) calloc(global_number_of_elements, sizeof(double));
 
     int i;
-    for ( i = 0; i <= local_number_of_elements; ++i ) {
+    for ( i = 0; i < local_number_of_elements; ++i ) {
         v[local_global_index[i]] = var[i];
     }
 
