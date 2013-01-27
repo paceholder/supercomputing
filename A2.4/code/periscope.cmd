@@ -10,7 +10,7 @@
 
 #SBATCH --get-user-env
 
-#SBATCH --time=00:10:00
+#SBATCH --time=00:40:00
 
 #SBATCH --mail-type=end
 #SBATCH --mail-user=pinaev@in.tum.de
@@ -51,7 +51,7 @@ do
             for num in "2" "4" "8" "16" "32" "64"
             do
                 export SCOREP_EXPERIMENT_DIRECTORY="periscope-$geom-$dist-$num-PHASE$init"
-                psc_frontend --apprun="./gccg $geom $dist $dist" --mpinumprocs=$num --strategy=MPI --force-localhost $ph --propfile="properties-$geom-$dist-INIT$init-$num.psc
+                psc_frontend --apprun="./gccg $geom $dist $dist" --mpinumprocs=$num --strategy=MPI --force-localhost $ph --propfile="properties-$geom-$dist-INIT$init-$num.psc"
             done
         done
     done

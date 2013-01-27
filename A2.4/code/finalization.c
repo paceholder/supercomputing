@@ -25,6 +25,7 @@ void finalization(char* file_in, char* out_prefix, int total_iters, double resid
 //    int status = store_simulation_stats(file_in, file_out, nintci, nintcf, var, total_iters,
  //                                       residual_ratio);
     printf("Iterations Count: %d\n", total_iters);
+    printf("Residual: %e\n", residual_ratio);
 
     sprintf(file_out, "%s_data.vtk", out_prefix);
     vtk_write_unstr_grid_header(file_in, file_out, 

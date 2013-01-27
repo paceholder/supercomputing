@@ -81,12 +81,6 @@ void calculate_number_of_elements_and_offsets(int** number_of_elements_in_partit
         MPI_Recv(&(*number_of_elements_in_partitions)[i], 1, MPI_INT, i, 10, MPI_COMM_WORLD, &status);
     }
 
-    #ifdef DEBUG
-    if ( my_rank == 0)
-    for ( i = 0; i < neighbours_count; ++i )
-        printf("neighbours in %d - %d\n", i, (*number_of_elements_in_partitions)[i]);
-    #endif
-
     MPI_Status status;
     for ( i = 0; i < neighbours_count; ++i ) {
         if ((*recv_count)[i] > 0 ) {
@@ -101,12 +95,6 @@ void calculate_number_of_elements_and_offsets(int** number_of_elements_in_partit
         int os = (*number_of_elements_in_partitions)[i-1];
         (*partitions_offsets)[i] = (*partitions_offsets)[i-1] + os;
     }
-
-    #ifdef DEBUG
-    if ( my_rank == 0)
-    for ( i = 0; i < neighbours_count; ++i )
-        printf("offsets for %d - %d\n", i, (*partitions_offsets)[i]);
-    #endif
 }
 
 
@@ -138,14 +126,15 @@ void fill_local_lcc(int** glob_lcc,
     // allocate new array for remapped lcc
     *lcc = (int**) calloc(number_of_elements, sizeof(int*));
 
+    //printf("total_recv %d\n", total_recv);
 
-    for ( i = 0; i < number_of_elements; ++i ) {
+    for ( i = 0; i <  number_of_elements; ++i ) {
         // memory for one cell of lcc
         (*lcc)[i] = (int*) calloc(6, sizeof(int));
 
         // take global index for current local element
         int gl_index = (*local_global_index)[i];
-    
+
         int* cells = glob_lcc[gl_index];
 
         // check cells around
@@ -154,11 +143,6 @@ void fill_local_lcc(int** glob_lcc,
 
             // stored in remapped lcc
             int new_local_index = -1;
-
-            /*        indexing
-             *
-             * | inner cells | recv1 | recv2 ... | outer one cell |
-             */
 
             // outer cell - index larger than total number of inner cells
             if (old_global_index > ne-1)
@@ -387,14 +371,6 @@ void fill_send_recv_arrays(int** send_count, int*** send_list,
         }
     }
 
-    #ifdef DEBUG
-    for ( i = 0; i < num_procs; ++i )
-    {
-        printf(" proc %d  send %d recv %d\n", i, (*send_count)[i], (*recv_count)[i]);
-        assert((*send_count)[i] == (*recv_count)[i]);
-    }
-    #endif
-
     *send_list = (int**) calloc(num_procs, sizeof(int*));
     *recv_list = (int**) calloc(num_procs, sizeof(int*));
 
@@ -403,12 +379,18 @@ void fill_send_recv_arrays(int** send_count, int*** send_list,
         (*recv_list)[i] = (int*) calloc((*recv_count)[i], sizeof(int));
     }
 
-    int* curr_indices = (int*) calloc(num_procs, sizeof(int));
+    int curr_indices[num_procs];
+    memset(curr_indices, 0, num_procs * sizeof(int));
     // traverce all local cells in this partition
-    for ( i = 0; i < number_of_elements; ++i ) {
+    for ( i = 0; i < ne; ++i ) {
+//    for ( i = 0; i < number_of_elements; ++i ) {
         // global index of current cell
         //int global_index = (*local_global_index)[i];
-        int send_global_index = (*local_global_index)[i];
+//        int send_global_index = (*local_global_index)[i];
+        int send_global_index = i;
+
+        if ( (*epart)[send_global_index] != my_rank )
+            continue;
 
         for ( j = 0; j < 6; ++j ) {
             // global index of neighbouring cell
@@ -422,14 +404,34 @@ void fill_send_recv_arrays(int** send_count, int*** send_list,
 
             // we must send information
             if ( part != my_rank ) {
-                (*send_list)[part][curr_indices[part]] = (*global_local_index)[send_global_index];
-                (*recv_list)[part][curr_indices[part]] = (*global_local_index)[neighbouring_cell];
+                (*send_list)[part][curr_indices[part]] = send_global_index;
+                //(*send_list)[part][curr_indices[part]] = (*global_local_index)[send_global_index];
+                //(*recv_list)[part][curr_indices[part]] = (*global_local_index)[neighbouring_cell];
                 curr_indices[part] += 1;
             }
         }
     }
 
-    free(curr_indices);
+    MPI_Request requests[num_procs];
+    MPI_Status statuses[num_procs];
+    for ( i = 0; i < num_procs; ++i ) {
+        MPI_Isend( (*send_list)[i], (*send_count)[i], MPI_INT, i, 11, MPI_COMM_WORLD, &requests[i]);
+    }
+
+    for ( i = 0; i < num_procs; ++i ) {
+        MPI_Recv( (*recv_list)[i], (*recv_count)[i], MPI_INT, i, 11, MPI_COMM_WORLD, &statuses[i]);
+    }
+
+    MPI_Waitall(num_procs, requests, statuses);
+
+    for ( i = 0; i < num_procs; ++i ) {
+        for ( j = 0; j < (*send_count)[i]; ++j ) {
+            int id = (*send_list)[i][j];
+            (*send_list)[i][j] = (*global_local_index)[id];
+            id = (*recv_list)[i][j];
+            (*recv_list)[i][j] = (*global_local_index)[id];
+        }
+    }
 }
 
 

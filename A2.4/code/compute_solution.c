@@ -113,12 +113,13 @@ int compute_solution(const int max_iters,
     /// ---------------------------------------------------
 
     while ( iter < max_iters ) {
+
+
         /**********  START COMP PHASE 1 **********/
         // update the old values of direc
         for ( nc = nintci; nc <= nintcf; nc++ ) {
             direc1[nc] = direc1[nc] + resvec[nc] * cgup[nc];
         }
-
 
         for ( i = 0; i <  neighbours_count; ++i ) {
             assert ( send_count[i] == recv_count[i] );
@@ -134,13 +135,10 @@ int compute_solution(const int max_iters,
             }
         }
 
-
         for ( i = 0; i <  neighbours_count; ++i ) {
             if ( send_count[i] > 0 )
                 MPI_Wait(&requests[i], &statuses[i]);
         }
-
-
 
         // compute new guess (approximation) for direc
         for ( nc = nintci; nc <= nintcf; nc++ ) {
@@ -153,17 +151,6 @@ int compute_solution(const int max_iters,
                          - bh[nc] * direc1[lcc[nc][5]];
         }
         /********** END COMP PHASE 1 **********/
-
-
-        #ifdef DEBUG
-        for ( i = 0; i < 50; ++i ) {
-            if ( epart[i] == my_rank ) {
-//                printf("global %d direc2 : %e\n", i, direc2[global_local_index[i]]);
-                printf("global %d bs : %e\n", i, bs[global_local_index[i]]);
-            }
-        }
-        #endif
-
 
         /********** START COMP PHASE 2 **********/
         // execute normalization steps
@@ -228,13 +215,6 @@ int compute_solution(const int max_iters,
         MPI_Allreduce(MPI_IN_PLACE, &cnorm[nor], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
         MPI_Allreduce(MPI_IN_PLACE, &omega, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-        #ifdef DEBUG
-            if (my_rank == 0){
-            printf("cnorm_nor %e\n", cnorm[nor]);
-            printf("omega %e\n", omega);
-            }
-        #endif
-
         omega = omega / cnorm[nor];
         double res_updated = 0.0;
         for ( nc = nintci; nc <= nintcf; nc++ ) {
@@ -246,24 +226,9 @@ int compute_solution(const int max_iters,
 
         MPI_Allreduce(MPI_IN_PLACE, &res_updated, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-
         res_updated = sqrt(res_updated);
 
-
-        #ifdef DEBUG
-        if (iter%100 == 0 && my_rank == 0)
-            printf("%d %.16e\n", iter, res_updated);
-
-        if (iter < 20 && my_rank == 0)
-            printf("%d %.16e\n", iter, res_updated);
-        #endif
-
         *residual_ratio = res_updated / resref;
-
-        #ifdef DEBUG
-            if (my_rank == 0)
-            printf("%d - res_ratio %e\n", iter, *residual_ratio);
-        #endif
 
         // exit on no improvements of residual
         if ( *residual_ratio <= 1.0e-10 ) break;

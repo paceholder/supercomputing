@@ -33,7 +33,8 @@ do
     do
         for num in "2" "4" "8" "16" "32" "64"
         do
-            export SCOREP_EXPERIMENT_DIRECTORY=scorep-$dist"-"$geom"-"$num
+            echo "scorep-$dist-$geom-$num"
+            export SCOREP_EXPERIMENT_DIRECTORY="scorep-$num-$dist-$geom"
             srun_ps -x -n $num ./gccg $geom $dist $dist
         done
     done
