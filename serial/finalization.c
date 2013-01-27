@@ -23,6 +23,8 @@ void finalization(char* file_in, char* out_prefix, int total_iters, double resid
     vtk_append_double(file_out, "var", nintci, nintcf, var);
     vtk_append_double(file_out, "bp", nintci, nintcf, bp);
 
+    printf("Number of iterations: %d\n", total_iters);
+
    // if ( status != 0 ) fprintf(stderr, "Error when trying to write to file %s\n", file_out);
 }
 
