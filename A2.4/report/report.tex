@@ -1,13 +1,27 @@
 \documentclass[12pt, a4paper]{article}
+\usepackage[T1]{fontenc}
 \usepackage{a4wide}
 \usepackage{graphicx}
 \usepackage[usenames,dvipsnames]{color}
+\usepackage{lmodern}
+\usepackage{listings}
+\usepackage[utf8]{inputenc}
+\usepackage{epstopdf}
+
+\graphicspath{{images/}}
+
+\lstset{basicstyle=\ttfamily}
+\lstset{numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=5pt}
+\lstset{keywordstyle=\bfseries\texttt}
+\lstset{frame=tblr}
+\lstnewenvironment{cpp}{\lstset{language=C++}}{}
+
 
 \title{----------------------------------------------------------- \\
-        {\bf Programming of Supercomputers WS11/12}\\ 
+        {\bf Programming of Supercomputers WS12/13}\\ 
         ----------------------------------------------------------- \\ 
         Final report}
-\author{Hans Mustermann}
+\author{Dmitry Pinaev}
 \date{ }
 
 \newcommand{\tab}{\hspace{10mm}}
@@ -20,50 +34,447 @@
 \hint{General information for you
 \begin{itemize}
 	\item the report should be between 8 and 12 pages long
-	\item it is the means to present and explain your work. The reader should receive a complete image of the solution you propose: both algorithms and  (relevant) implementation details.
-	\item this is a LaTeX template, but you can choose to work in any editing tool you like. The report has to be submitted in pdf format.
+	\item it is the means to present and explain your work. 
+	The reader should receive a complete image of the solution you propose: 
+	both algorithms and  (relevant) implementation details.
 	\item besides the points mentioned below, you are free to add any other ones which you might find relevant for your solution.
 \end{itemize}}
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \section{Introduction}
-\draft{Short overview of the project}
+
+The proposed project was aimed at parallelization and benchmarking conjugate gradient-like solver.with MPI library.
+The source code itself is subdivided into several functional units for particular problems:
+\begin{itemize}
+	\item Binary data-file reader
+	\item Initializer
+	\item Solver
+	\item Finalizer
+	\item Plotter (vtk files)
+\end{itemize}
+
+Mainly, work was done in initialization and solver parts of the program. Special library METIS was used in order
+to exploit grid's geometry and configuration and obtain optimal communication faces among different
+partitions of a comutational domain.
+
+During the execution, each running process solver obtains its own part of the domain and performs
+computing minimizing the residual over the number of iterations.
+The communication 
+
+After the parallelization, obtained code showed performance impovements (time) with
+same number of iterations and residual order.
+
+The following report goes through different steps of the implementation
+and describes obtained results.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 \section{Sequential optimization}
-\draft{Analysis of the measurements carried out for the first assignment. Include observations about the metrics variations for different input size as well as for different run phases of the same input.}
 
-\hint{Only include one or two tables and diagrams to support your statements. You do not need to include all the data you provided in the lab report, but analyze it and pick up the most relevant one.}
+\draft{Analysis of the measurements carried out for the first assignment. 
+Include observations about the metrics variations for different input size 
+as well as for different run phases of the same input.}
+
+\hint{Only include one or two tables and diagrams to support your statements. 
+You do not need to include all the data you provided in the lab report, 
+but analyze it and pick up the most relevant one.}
+
+Before the parallelization some imporvements and benchmarks were done for a 
+sequential code.
+
+We can split program's execution into three main parts:
+\begin{itemize}
+	\item Intialization
+	\item Computing
+	\item Finalization
+\end{itemize}
+
+Each part was analized with a library PAPI. The main counters were number of cycles and
+cache miss rate.
+
+Serious impovements were obtained for the initialization part.
+Initially, data was stored in text files. That implies slow data access and
+its distribution into arrays.
+After implementing special converter from text to binary format
+the speed-up gained one order of magnitude (Figure \ref{fig:TextBin}).
+
+Besides, the measurements for different compiler opitimization flags
+were done. They show that largest speed-up we get after switching from 
+-O0 to -O1. For example, for cojack geometry -O1 reduced the exucution
+time from 87 to 37 seconds, -O2 imporoved time to 31 seconds.
+
+For large input text files (cojack -- 42 MB) initialization phase took up to
+15\% of whole time, for smalll input files ( drall -- 6 MB) 
+the initialization phase is around 30\% of the whole time.
+Of course, converting to binary format made 
+time for file reading neglectable.
+
+\begin{figure}[ht]
+	\center{\includegraphics[width=12cm]{textbin}}
+	\caption{Comparison of reading time for text and binary input data}
+	\label{fig:TextBin}
+\end{figure}
+
+\begin{figure}[ht]
+	\center{\includegraphics[width=12cm]{opflags}}
+	\caption{Execution time against different levels of optimization}
+	\label{fig:OpFlags}
+\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Benchmark parallelization}
-\draft{Following the milestones, present your solution for parallelizing this benchmark.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Data distribution}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{Distribution algorithms}
+
+There three data distribution approaches were proposed: 
 \begin{itemize}
-	\item data distribution
-	\begin{itemize}
-		\item which initialization method you chose? why?
-		\item how did you implement the data distribution?
-		\item how did you avoid code replication when working with both metis and classical distribution?
-	\end{itemize}
-	\item communication model
-	\begin{itemize}
-		\item index mapping: how and what for?
-		\item ghost cells and communication lists
-	\end{itemize}
-	\item MPI implementation
+	\item Classical
+	\item Dual
+	\item Nodal
 \end{itemize}
+
+The first one is the most simple approach when an array of cells is split into several
+sequential parts. Since we do not take into account spartial location of cells
+relative to each other, resulting partitioning looks inside the computational domain like
+randomly scattered cells (Figure \ref{fig:Classical}).
+
+\begin{figure}[ht]
+	\center{\includegraphics[width=12cm]{classical}}
+	\caption{Classical distribution for one partition}
+	\label{fig:Classical}
+\end{figure}
+
+Next two algorithms are implemented inside the Metis library.
+
+Typically, the graph or mesh is being partitioned so that a computational task 
+can be correspondingly divided up among a number of processors for parallel computing. 
+Thus, it is important that each part of the partition have roughly the same number of elements, 
+and that "connections" between distinct partitions be limited, as much as possible, 
+to reduce the amount of interprocess communication necessary \cite{metis}.
+
+The reason for using special tools for domain partitioning is the
+reducing of communication between processes.
+
+Using initial information about vertices and cells Metis library
+can split computational domain into several almost equal partitions 
+(Figure \ref{fig:Dual}).
+
+\begin{figure}[ht]
+	\center{\includegraphics[width=12cm]{dual}}
+	\caption{Dual distribution with send and receive arrays for one partition}
+	\label{fig:Dual}
+\end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\subsubsection{Structure of the initialization code}
+
+The goal of initialization is to read binary file with initial data and
+fill following arrays: BS, BN, BE, BW, BL, BH, BP, OC, CGUP, SU, VAR, CNORM.
+Moreover we need to split LCC array and create two mapping arrays
+for local number to global number and vice versa transformations.
+
+There are two approaches for initialization:
+\begin{itemize}
+	\item Read all the data in one process and the distribute among the processes using MPI
+	\item Each process reads binary file and takes part of the data needed just for this process
+\end{itemize}
+
+For this work second approach was chosen because it simplifies source code
+drastically without serious any drawbacks in performance.
+
+In sake of simplification, initialization code was divided into 
+several functions:
+\begin{itemize}
+	\item \texttt{read\_binary\_geo}. Function reads whole data arrays from binary file
+	\item \texttt{partitioning}. Here we use requested partitioning algorithm and distribute cells among processes
+	\item \texttt{allocate\_memory\_for\_distributed\_arrays}. After we knew number of cells belonging to the current process we can allocate necessary amount of memory for all arrays
+	\item \texttt{allocate\_memory\_for\_mapping\_arrays}. This function fills \texttt{global\_to\_local} and \texttt{global\_to\_local arrays}
+	\item \texttt{fill\_local\_arrays}. Now we can fill all local Bs and CGUP arrays. The rest arrays are initialized with zeros
+	\item \texttt{fill\_send\_recv\_arrays}. The function creates and fills arrays which store information for partitions communications
+	\item \texttt{fill\_local\_lcc}. To know about all the neighbours of all cells we need to store part of lcc array in each partition
+\end{itemize}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{Using Metis}
+
+All we need to use the Metis library is to create two arrays.
+First \texttt{eptr} is used to store the numbers of all the nodes for each cell in current domain.
+The second \texttt{eind} contains "pointers" to beginning of each cell subarray in first array.
+
+\begin{cpp}
+if ( strcmp(part_type, "dual") == 0 ) {
+    METIS_PartMeshDual(&ne, &nn,
+                       eptr, eind,
+                       NULL, NULL, &ncommon,
+                       &procs, NULL, options,
+                       &obvl, *epart, *npart))
+} else if ( strcmp(part_type, "nodal") == 0 ) {
+    METIS_PartMeshNodal(&ne, &nn,
+                        eptr, eind,
+                        NULL, NULL,
+                        &procs,
+                        NULL, options,
+                        &obvl, *epart, 
+                        *npart);
+} else if (strcmp(part_type, "classical") == 0) {
+    int elems_per_node = ne / procs + 1;
+
+    for ( i = 0; i < ne; ++i ) {
+        int p = i / elems_per_node;
+        (*epart)[i] = p;
+    }
+} else {
+    printf("unknown partition type\n");
+    MPI_Abort(MPI_COMM_WORLD, -1);
 }
-\hint{\begin{itemize}
-	\item you can refer to source code in your implementation (provide file name and line number).
-	\item you can provide pseudo-code for your algorithms, if you find it necessary.
-\end{itemize}}
+\end{cpp}
+
+It is worth to mention that even in case of classical partitioning we still use \texttt{epart}
+array. That simplifies the following code and allows us to work
+uniformly despite the partitioning algorithm.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Indexing and mappings}
+
+To communicate with neighbours each partition must store information about
+cells located near its boundary.
+This implies communication via global indexing valid for all cells.
+But to operate with cells locally it is much more easier to use
+special local indices.
+
+To fulfil our purposes we create two mapping arrays. The length of first array
+is equal to the total number of cells in computational domain.
+The array \texttt{global\_local\_mapping} is stored and used 
+in each partiton (Figure \ref{fig:LocalGlobal}).
+The second array \texttt{local\_global\_mapping} contains the same amount of cells
+as its partition (Figure \ref{fig:GlobalLocal}).
+
+We fill these two arrays during the initialization and then pass to 
+computations routine. 
+
+\begin{figure}[ht]
+	\center{\includegraphics[width=12cm]{global_local}}
+	\caption{Local to global mapping}
+	\label{fig:LocalGlobal}
+\end{figure}
+
+\begin{figure}[ht]
+	\center{\includegraphics[width=12cm]{local_global}}
+	\caption{Global to local mapping}
+	\label{fig:GlobalLocal}
+\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Communication lists and ghost layers}
+
+Solver works individually in each partition. Generally,
+each cell communicate with its six neighbours.
+While the communication is done within the partition no
+problem arises. 
+
+If a cell lies near the boundary of 
+whole geometry we assume that external boundary cell contains zeros.
+In case the cell is situated on the boundary between
+two different partitions we must somehow transfer values of this cell
+to the neighbours.
+
+The communication model uses so-named ghost layers.
+Each boundary layer of cells from any neighbouring partition is a ghost 
+for current partition (Figure \ref{fig:Ghost}).
+
+The communication happens each iteration of the solver.
+To perform this action we need to store two special arrays:
+\texttt{recv\_array} and \texttt{send\_array}.
+Each of arrays contains local numbers of cells supposed 
+to be send neighbour or received as a ghost layer from neighbour.
+
+\begin{figure}[ht]
+	\center{\includegraphics[width=12cm]{ghost}}
+	\caption{Cells marked with "S" are sent to neighbouring partition. Cells marked with "R" are 
+	received from neighbour and used as a ghost layer.}
+	\label{fig:Ghost}
+\end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{MPI implementation}
+
+Since each process reads its own data from data file we do not need any MPI communication at all
+at initialization stage.
+
+MPI is used just in solver to enable data sending and receiving.
+
+The communication is done for a vector named \texttt{direc1} which stores curren state of the solution.
+It contains all inner cells of a partition and then additional cells to be received from
+all neighbours.
+
+We know that \texttt{send\_list} and \texttt{recv\_list} may point to arbitrarily distributed
+cells within the vector \texttt{direc1}. This configuration of the data
+do not allow to use simple \texttt{MPI\_Send} or \texttt{MPI\_Recv} functions
+with an array of \texttt{double} as we operate with sequential data.
+
+To overcome aforementioned problem we use \texttt{MPI\_Type\_indexed} datatype.
+
+\begin{cpp}
+MPI_Datatype send_datatypes[neighbours_count];
+
+for ( i = 0; i <  neighbours_count; ++i ) {
+    int j;
+    int* b = (int*) calloc(send_count[i], sizeof(int));
+    for ( j = 0; j < send_count[i]; ++j )
+        b[j] = 1;
+
+    // type for sending to neighbour #i
+    // send_list contains cells to be send
+    MPI_Type_indexed(send_count[i], b, send_list[i], 
+                     MPI_DOUBLE, &send_datatypes[i]);
+    MPI_Type_commit(&send_datatypes[i]);
+    free(b);
+}
+\end{cpp}
+
+
+On the each time-step we update vector \texttt{direc1} and then do an update
+for ghost cells. First, we need to send updated data to all the neighbours
+of the current partition. Second, we receive updated values from
+neighbours.
+
+To avoid a dead lock \texttt{MPI\_Isend} is used.
+It allows program to immediately proceed without blocking sending and 
+receiving routines.
+
+To control the convergence of a solution we need evaluate global residual
+for all processes. It is done with a reduce operation.
+
+\begin{cpp}
+MPI_Allreduce(MPI_IN_PLACE, &res_updated, 1, 
+              MPI_DOUBLE, MPI_SUM, 
+              MPI_COMM_WORLD);
+\end{cpp}
+
+To summarize, computational function looks like:
+\begin{itemize}
+	\item Creating indexed MPI datatypes
+	\item Start computational loop
+	\begin{itemize}
+		\item Update vector \texttt{direc1}
+		\item Send and receive ghost cells
+		\item Update vector \texttt{direc2}. We use remapped to local cells \texttt{lcc} vector
+		\item Computer residual and other clobal values
+	\end{itemize}
+	\item As soon as necessary magnitude of residual is reached, stop iterations
+	\item Result is stored in vector \texttt{var}
+\end{itemize}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Performance analysis and tuning}
+
+\subsection{Scalability}
+
+Tho geometry files were used for an analysis: pent.geo.bin and cojack.geo.bin.
+They have sizes 13.7 MB and 40.3 MB accordingly.
+
+During the measurements we can observe several phenomena:
+\begin{itemize}
+	\item The problem remains scalable as we increase a number of processes for large files (Figure \ref{fig:ScalDual}, top)
+	\item For a relatively small file communication overhead grows faster and for 32 processors speedup decreases (Figure \ref{fig:ScalDual}, down)
+	\item Classical distribution is the worst case from view point of communication overhead, therefor scalability drops down very fast (Figure \ref{fig:ScalClassical})
+	\item In general, scalability of a code with dual distribution is obviously better that with classical one
+	\item For the pent.geo.bin file processed with dual distribution scalability reaches 20 for 16 processes. 
+	Assuming that code has no errors, it could be reasoned by perfect fitting the data into the processors' cache.
+	Also, it could be caused by incorrect time measurements for a sequential code (see section \ref{subsec:Problems})
+\end{itemize}
+
+\begin{figure}[ht]
+	\center{\includegraphics[width=14cm]{speedupdual}}
+	\caption{Scalability for dual distribution}
+	\label{fig:ScalDual}
+\end{figure}
+
+\begin{figure}[ht]
+	\center{\includegraphics[width=14cm]{speedupclassical}}
+	\caption{Scalability for classical distribution}
+	\label{fig:ScalClassical}
+\end{figure}
+
 \draft{
 Present the scalability analysis of your code. Include relevant screenshots and diagrams/tables.}
 
 \draft{
-Mention any bottleneck identified in your code, whether it can be overcome and the new performance values achieved after optimizing your implementation (if that was possible).
+Mention any bottleneck identified in your code, whether it can be overcome 
+and the new performance values achieved after optimizing your implementation (if that was possible).
 }
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Initialization phase}
+
+Since the approach was chosen when each process reads its own data it causes
+the problems of simultaneous access to one file by different nodes.
+It significantly slows down the start-up time.
+
+There might be three possible solutions for this problem:
+\begin{itemize}
+	\item Rewrite code in a way when one process reads data and sends to neighbours
+	\item Use MPI functions for file operations
+	\item Organize ordered access to the data file for all nodes
+\end{itemize}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \section{Overview}
+
+\subsection{Problems}
+\label{subsec:Problems}
+
+To measure speed-up we have to compare obtained results with serial version of the program.
+There was strange behaviour of cluster which caused wrong execution time for a serial program.
+
+For example, program was executed in a following way:
+\begin{cpp}
+	salloc --nprocs=1 --partition=mpp1_inter
+	srun_ps ./gccg cojack.geo.bin
+\end{cpp}
+
+Afterwards program reported that computational phase took 50 seconds.
+But, if we run two (or more) instances of sequential program as below:
+\begin{cpp}
+	salloc --nprocs=2 --partition=mpp1_inter
+	srun_ps ./gccg cojack.geo.bin
+\end{cpp}
+
+\noindent
+each instance prints 25 seconds for computational phase.
+This result correlates with parallelized version fo code.
+
+
+
 \draft{
 General conclusions regarding the implemented solution and other comments.
 }
