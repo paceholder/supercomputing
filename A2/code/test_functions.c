@@ -6,13 +6,13 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <mpi.h>
 
 #include "test_functions.h"
 
 #include "util_write_files.h"
 #include "util_read_files.h"
 
-#include <mpi.h>
 
 
 int test_distribution(char *file_in, char *file_vtk_out, int *local_global_index, int num_elems,
@@ -48,7 +48,7 @@ int test_distribution(char *file_in, char *file_vtk_out, int *local_global_index
 
     vtk_write_unstr_grid_header(file_in, file_vtk_out, 0, nintcf, points_count, points, elems);
 
-    v = (double*) calloc( nintcf+1, sizeof(double));
+    v = (double*) calloc(nintcf+1, sizeof(double));
 
     int i;
     for ( i = 0; i <= num_elems; ++i ) {
@@ -102,7 +102,7 @@ int test_communication(char *file_in, char *file_vtk_out, int *local_global_inde
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
 
     int* commlist = NULL;
-    commlist = (int*) calloc( (nintcf + 1), sizeof(int));
+    commlist = (int*) calloc((nintcf + 1), sizeof(int));
     int i;
     for ( i = 0; i < (nintcf +1); ++i )
         commlist[i] = 0;

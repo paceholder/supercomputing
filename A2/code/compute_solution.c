@@ -14,18 +14,18 @@
 #include <metis.h>
 #include <mpi.h>
 
-int compute_solution(const int max_iters, 
-                     int nintci, int nintcf, 
-                     int** lcc, 
+int compute_solution(const int max_iters,
+                     int nintci, int nintcf,
+                     int** lcc,
                      double* bp,
-                     double* bs, double* bw, double* bl, 
+                     double* bs, double* bw, double* bl,
                      double* bn, double* be, double* bh,
                      double* cnorm, double* var, double *su, double* cgup, double* residual_ratio,
-                     int* local_global_index, int* global_local_index, 
+                     int* local_global_index, int* global_local_index,
                      int number_of_elements,
                      int* number_of_elements_in_partitions,
                      int* partitions_offsets,
-                     int* send_count, int** send_list, 
+                     int* send_count, int** send_list,
                      int* recv_count, int** recv_list,
                      idx_t* epart) {
     int iter = 1;
@@ -80,7 +80,7 @@ int compute_solution(const int max_iters,
     double *dxor1 = (double *) calloc(sizeof(double), (nintcf + 1));
     double *dxor2 = (double *) calloc(sizeof(double), (nintcf + 1));
 
-    MPI_Datatype send_datatypes[neighbours_count];
+    MPI_Datatype* send_datatypes = (MPI_Datatype*) calloc(neighbours_count, sizeof(MPI_Datatype));
 
     for ( i = 0; i <  neighbours_count; ++i ) {
         int j;
@@ -93,7 +93,7 @@ int compute_solution(const int max_iters,
         free(b);
     }
 
-    MPI_Datatype recv_datatypes[neighbours_count];
+    MPI_Datatype* recv_datatypes = (MPI_Datatype*) calloc(neighbours_count, sizeof(MPI_Datatype));
 
     for ( i = 0; i <  neighbours_count; ++i ) {
         int j;
@@ -106,15 +106,12 @@ int compute_solution(const int max_iters,
         free(b);
     }
 
-    MPI_Request requests[neighbours_count];
-    MPI_Status  statuses[neighbours_count];
-
+    MPI_Request* requests = (MPI_Request*) calloc(neighbours_count, sizeof(MPI_Request));
+    MPI_Status* statuses = (MPI_Status*) calloc(neighbours_count, sizeof(MPI_Status));
 
     /// ---------------------------------------------------
 
     while ( iter < max_iters ) {
-
-
         /**********  START COMP PHASE 1 **********/
         // update the old values of direc
         for ( nc = nintci; nc <= nintcf; nc++ ) {
@@ -122,7 +119,7 @@ int compute_solution(const int max_iters,
         }
 
         for ( i = 0; i <  neighbours_count; ++i ) {
-            assert ( send_count[i] == recv_count[i] );
+            assert(send_count[i] == recv_count[i]);
             if ( send_count[i] > 0 ) {
                 MPI_Isend(direc1, 1, send_datatypes[i], i, 10, MPI_COMM_WORLD, &requests[i]);
             }
@@ -130,7 +127,7 @@ int compute_solution(const int max_iters,
 
         for ( i = 0; i <  neighbours_count; ++i ) {
             if ( recv_count[i] > 0 ) {
-                MPI_Recv(&direc1[number_of_elements + partitions_offsets[i]], 
+                MPI_Recv(&direc1[number_of_elements + partitions_offsets[i]],
                          1, recv_datatypes[i], i, 10, MPI_COMM_WORLD, &statuses[i]);
             }
         }
@@ -142,7 +139,7 @@ int compute_solution(const int max_iters,
 
         // compute new guess (approximation) for direc
         for ( nc = nintci; nc <= nintcf; nc++ ) {
-            direc2[nc] = bp[nc] * direc1[nc] 
+            direc2[nc] = bp[nc] * direc1[nc]
                          - bs[nc] * direc1[lcc[nc][0]]
                          - bw[nc] * direc1[lcc[nc][3]]
                          - bl[nc] * direc1[lcc[nc][4]]
@@ -210,7 +207,7 @@ int compute_solution(const int max_iters,
             cnorm[nor] = cnorm[nor] + direc2[nc] * direc2[nc];
             omega = omega + resvec[nc] * direc2[nc];
         }
-  
+
 
         MPI_Allreduce(MPI_IN_PLACE, &cnorm[nor], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
         MPI_Allreduce(MPI_IN_PLACE, &omega, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -222,7 +219,7 @@ int compute_solution(const int max_iters,
             resvec[nc] = resvec[nc] - omega * direc2[nc];
             res_updated = res_updated + resvec[nc] * resvec[nc];
         }
-        
+
 
         MPI_Allreduce(MPI_IN_PLACE, &res_updated, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
@@ -263,6 +260,11 @@ int compute_solution(const int max_iters,
             break;
         #endif
     }
+
+    free(recv_datatypes);
+    free(send_datatypes);
+    free(requests);
+    free(statuses);
 
     free(resvec);
     free(direc1);
