@@ -9,7 +9,11 @@
 #include <string.h>
 #include <math.h>
 
-#include "mpi.h"
+#ifdef SPEEDUP
+    #include <papi.h>
+#endif
+
+#include <mpi.h>
 
 #ifdef INSTRUMENTED1
     #include <scorep/SCOREP_User.h>
@@ -21,9 +25,6 @@
     #include <scorep/SCOREP_User.h>
 #endif
 
-#ifdef SPEEDUP
-    #include <papi.h>
-#endif
 
 #include "initialization.h"
 #include "compute_solution.h"
@@ -76,10 +77,10 @@ int main(int argc, char *argv[]) {
     idx_t* npart;     /// partition vector for the points (nodes) of the mesh
     int objval;    /// resulting edgecut of total communication volume (classical distrib->zeros)
 
-    int global_number_of_elements; // number of elements in current partition
-    int local_number_of_elements; // number of elements in current partition
-    int *number_of_elements_in_partitions; // number of elements in all communicating partitions
-    int *partitions_offsets; // offsets for direc1 vector
+    int global_number_of_elements;  // number of elements in current partition
+    int local_number_of_elements;  // number of elements in current partition
+    int *number_of_elements_in_partitions;  // number of elements in all communicating partitions
+    int *partitions_offsets;  // offsets for direc1 vector
 
     MPI_Init(&argc, &argv);    /// Start MPI
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
@@ -104,15 +105,15 @@ int main(int argc, char *argv[]) {
 
 
 #ifdef INSTRUMENTED1
-    SCOREP_USER_REGION_DEFINE( OA_Init_Phase )
-    SCOREP_USER_OA_PHASE_BEGIN( OA_Init_Phase, "OA_Init_Phase", SCOREP_USER_REGION_TYPE_COMMON )
+    SCOREP_USER_REGION_DEFINE(OA_Init_Phase)
+    SCOREP_USER_OA_PHASE_BEGIN(OA_Init_Phase, "OA_Init_Phase", SCOREP_USER_REGION_TYPE_COMMON)
 #endif
 
     int init_status = initialization(file_in, part_type, &nintci, &nintcf, &nextci, &nextcf, &lcc,
                                      &bs, &be, &bn, &bw, &bl, &bh, &bp, &su, &points_count, &points,
-                                     &elems, &var, &cgup, &oc, &cnorm, 
+                                     &elems, &var, &cgup, &oc, &cnorm,
                                      &local_global_index,
-                                     &global_local_index, 
+                                     &global_local_index,
 
                                      &global_number_of_elements,
                                      &local_number_of_elements,
@@ -120,8 +121,8 @@ int main(int argc, char *argv[]) {
                                      &partitions_offsets,
 
                                      &send_count, &send_list,
-                                     &recv_count, &recv_list, 
-                                     &epart, &npart, 
+                                     &recv_count, &recv_list,
+                                     &epart, &npart,
                                      &objval);
     if ( init_status != 0 ) {
         fprintf(stderr, "Failed to initialize data!\n");
@@ -141,7 +142,7 @@ int main(int argc, char *argv[]) {
         test_distribution(file_in, file_vtk_out, local_global_index, nintcf, cgup);
 
         test_communication(file_in, file_vtk_out, local_global_index, nintcf,
-                           send_count, send_list, 
+                           send_count, send_list,
                            recv_count, recv_list);
     }
     #endif
@@ -157,7 +158,7 @@ int main(int argc, char *argv[]) {
 
 
 #ifdef INSTRUMENTED1
-    SCOREP_USER_OA_PHASE_END( OA_Init_Phase)
+    SCOREP_USER_OA_PHASE_END(OA_Init_Phase)
 #endif
     /********** END INITIALIZATION **********/
 
@@ -171,18 +172,18 @@ int main(int argc, char *argv[]) {
     SCOREP_USER_OA_PHASE_BEGIN(OA_Comp_Phase, "OA_Comp_Phase", SCOREP_USER_REGION_TYPE_COMMON)
 #endif
 
-    int total_iters = compute_solution(max_iters, 
-                                       nintci, nintcf, 
-                                       lcc, 
-                                       bp, bs, bw, bl, bn, be, bh, 
+    int total_iters = compute_solution(max_iters,
+                                       nintci, nintcf,
+                                       lcc,
+                                       bp, bs, bw, bl, bn, be, bh,
                                        cnorm, var, su, cgup, &residual_ratio,
-                                       local_global_index, global_local_index, 
+                                       local_global_index, global_local_index,
 
                                        local_number_of_elements,
                                        number_of_elements_in_partitions,
                                        partitions_offsets,
 
-                                       send_count, send_list, 
+                                       send_count, send_list,
                                        recv_count, recv_list,
                                        epart);
 
@@ -205,21 +206,21 @@ int main(int argc, char *argv[]) {
 
 
 #ifdef INSTRUMENTED3
-    SCOREP_USER_REGION_DEFINE( OA_Final_Phase )
-    SCOREP_USER_OA_PHASE_BEGIN( OA_Final_Phase, "OA_Final_Phase", SCOREP_USER_REGION_TYPE_COMMON )
+    SCOREP_USER_REGION_DEFINE(OA_Final_Phase )
+    SCOREP_USER_OA_PHASE_BEGIN(OA_Final_Phase, "OA_Final_Phase", SCOREP_USER_REGION_TYPE_COMMON )
 #endif
 
 
     if ( my_rank == 0)
         finalization(file_in, out_prefix, total_iters, residual_ratio, nintci, nintcf, points_count,
-                     points, elems, 
+                     points, elems,
                      local_number_of_elements,
                      global_number_of_elements,
                      local_global_index,
                      var, cgup, su);
 
 #ifdef INSTRUMENTED3
-    SCOREP_USER_OA_PHASE_END( OA_Final_Phase  )
+    SCOREP_USER_OA_PHASE_END(OA_Final_Phase)
 #endif
 
 #ifdef SPEEDUP
@@ -246,18 +247,18 @@ int main(int argc, char *argv[]) {
     free(bs);
     free(elems);
 
-    
+
     int i;
-    for(i = 0; i < nintcf + 1; i++) {
+    for ( i = 0; i < nintcf + 1; i++ ) {
         free(lcc[i]);
     }
     free(lcc);
 
-    for(i = 0; i < points_count; i++) {
+    for ( i = 0; i < points_count; i++ ) {
         free(points[i]);
     }
     free(points);
-    
+
 
     MPI_Finalize();    /// Cleanup MPI
 
