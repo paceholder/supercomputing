@@ -15,10 +15,12 @@
 #SBATCH --mail-type=end
 #SBATCH --mail-user=pinaev@in.tum.de
 
-#SBATCH --ntasks=64
+#SBATCH --ntasks=8
 
 source /etc/profile.d/modules.sh
 
+module unload mpi.intel
+module load mpi.parastation
 module load periscope/1.5 metis papi scorep cube png
 
 export SCOREP_METRIC_PAPI=""
@@ -48,9 +50,9 @@ do
     do
         for geom in "pent.geo.bin" "cojack.geo.bin"
         do
-            for num in "2" "4" "8" "16" "32" "64"
+            #"64"
+            for num in "4" "8"
             do
-                export SCOREP_EXPERIMENT_DIRECTORY="periscope-$geom-$dist-$num-PHASE$init"
                 psc_frontend --apprun="./gccg $geom $dist $dist" --mpinumprocs=$num --strategy=MPI --force-localhost $ph --propfile="properties-$geom-$dist-INIT$init-$num.psc"
             done
         done
